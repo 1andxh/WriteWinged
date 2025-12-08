@@ -1,6 +1,6 @@
 # WriteWinged API
 
-A collaborative writing platform backend - GitHub for writers.
+A collaborative writing platform backend 
 
 ## What is WriteWinged?
 
