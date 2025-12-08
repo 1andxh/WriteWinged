@@ -11,7 +11,10 @@ from src.auth.models import User
 
 # note: import models before metadata.create_all()
 
-async_engine = create_async_engine(url=config.DATABASE_URL, echo=True)
+async_engine = create_async_engine(
+    url=config.DATABASE_URL,
+    echo=True,
+)
 
 
 async def init_db() -> None:

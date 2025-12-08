@@ -11,6 +11,7 @@ class Config(CustomBaseSettings):
     DATABASE_URL: str
     JWT_SECRET: str
     JWT_ALGORITHM: str
+    API_VERSION: str
 
 
 config = Config()  # type: ignore
