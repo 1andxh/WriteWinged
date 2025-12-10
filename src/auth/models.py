@@ -11,6 +11,7 @@ from typing import Optional
 class AuthProvider(str, Enum):
     LOCAL = "local"
     GOOGLE = "google"
+    # redundant -- user with google_sub already shows auth provider
 
 
 class UserRole(str, Enum):
@@ -37,7 +38,7 @@ class User(SQLModel, table=True):
     role: UserRole = Field(
         sa_column=Column(
             SAEnum(UserRole, name="role_enum", native_enum=False),
-            server_default=UserRole.WRITER.value,
+            server_default=UserRole.WRITER,
             nullable=False,
         )
     )

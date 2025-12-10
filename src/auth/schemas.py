@@ -38,15 +38,21 @@ class TokenResponse(BaseModel):
 
 
 # OAuth Schema
-
-
 class GoogleUser(BaseModel):
-    id: int
-    username: str
-    token: str
+    sub: str
+    email: str
+    name: str
 
     class Config:
-        orm_mode = True
+        # orm_mode = True  -- * 'orm_mode' has been renamed to 'from_attributes'
+        from_attributes = True
+
+
+class GoogleUserCreateModel(BaseModel):
+    email: EmailStr
+    google_sub: str
+    username: str
+    is_verified: bool
 
 
 class OAuthCallback:

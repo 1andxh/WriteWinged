@@ -1,12 +1,46 @@
+from fastapi import Depends
 from passlib.context import CryptContext
+from fastapi.security import OAuth2PasswordBearer
 import bcrypt, hashlib
 from datetime import datetime, timedelta, timezone
 import jwt
-from src.config import Config
 import uuid
 from src.config import config
+from ..db.dependency import session
 import logging
+from typing import Annotated
 
+
+from authlib.integrations.starlette_client import OAuth
+from ..config import config
+from starlette.config import Config
+
+
+GOOGLE_CLIENT_ID = config.GOOGLE_CLIENT_ID
+GOOGLE_CLIENT_SECRET = config.GOOGLE_CLIENT_SECRET
+GOOGLE_REDIRECT_URI = "http://127.0.0.1:8000/auth/callback/google"
+
+config_data = {
+    "GOOGLE_CLIENT_ID": GOOGLE_CLIENT_ID,
+    "GOOGLE_CLIENT_SECRET": GOOGLE_CLIENT_SECRET,
+}
+
+starlette_config = Config(environ=config_data)
+
+oauth = OAuth(starlette_config)
+
+oauth.register(
+    name="google",
+    # client_id=GOOGLE_CLIENT_ID,
+    # client_secret=GOOGLE_CLIENT_SECRET,
+    server_metadata_url="https://accounts.google.com/.well-known/openid-configuration",
+    client_kwargs={
+        "scope": "openid email profile",
+        "redirect_url": GOOGLE_REDIRECT_URI,
+    },
+)
+
+oauth_bearer = OAuth2PasswordBearer(tokenUrl="/token")
 jwt_secret_key = config.JWT_SECRET
 jwt_algorithm = config.JWT_ALGORITHM
 ACCESS_TOKEN_EXPIRY = 3600
@@ -48,3 +82,7 @@ def decode_token(token: str) -> dict | None:
         return token_data
     except jwt.PyJWTError as e:
         logging.exception(e)
+
+
+def get_current_user(token: Annotated[str, Depends(oauth_bearer)], session: session):
+    pass

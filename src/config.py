@@ -12,6 +12,9 @@ class Config(CustomBaseSettings):
     JWT_SECRET: str
     JWT_ALGORITHM: str
     API_VERSION: str
+    GOOGLE_CLIENT_ID: str
+    GOOGLE_CLIENT_SECRET: str
+    MIDDLEWARE_SECRET: str
 
 
 config = Config()  # type: ignore
