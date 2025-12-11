@@ -48,7 +48,7 @@ class GoogleUserService:
         if existing_user:
             existing_user.google_sub = google_sub
             await session.commit()
-            # await session.refresh(existing_user)
+            await session.refresh(existing_user)
             return existing_user
 
         new_user_data = GoogleUserCreateModel(
@@ -59,7 +59,7 @@ class GoogleUserService:
         )
         data = new_user_data.model_dump()
         new_user = User(**data)
-        new_user.role = UserRole.READER
+        new_user.role = UserRole.USER
 
         session.add(new_user)
         await session.commit()

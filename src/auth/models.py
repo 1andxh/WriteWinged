@@ -15,8 +15,7 @@ class AuthProvider(str, Enum):
 
 
 class UserRole(str, Enum):
-    READER = "reader"
-    WRITER = "writer"
+    USER = "user"
     ADMIN = "admin"
 
 
@@ -38,7 +37,7 @@ class User(SQLModel, table=True):
     role: UserRole = Field(
         sa_column=Column(
             SAEnum(UserRole, name="role_enum", native_enum=False),
-            server_default=UserRole.WRITER,
+            server_default=None,
             nullable=False,
         )
     )
