@@ -15,6 +15,7 @@ class Config(CustomBaseSettings):
     GOOGLE_CLIENT_ID: str
     GOOGLE_CLIENT_SECRET: str
     MIDDLEWARE_SECRET: str
+    REDIS_URL: str
 
 
 config = Config()  # type: ignore

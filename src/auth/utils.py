@@ -15,7 +15,7 @@ from authlib.integrations.starlette_client import OAuth
 from ..config import config
 from starlette.config import Config
 
-
+REFRESH_TOKEN_EXPIRY = 2
 GOOGLE_CLIENT_ID = config.GOOGLE_CLIENT_ID
 GOOGLE_CLIENT_SECRET = config.GOOGLE_CLIENT_SECRET
 GOOGLE_REDIRECT_URI = "http://127.0.0.1:8000/auth/callback/google"
@@ -86,3 +86,17 @@ def decode_token(token: str) -> dict | None:
 
 def get_current_user(token: Annotated[str, Depends(oauth_bearer)], session: session):
     pass
+
+
+def get_tokens(user):
+    access_token = create_access_token(
+        data={"email": user.email, "user_id": str(user.id), "role": user.role},
+        expiry=timedelta(days=7),
+    )
+    refresh_token = create_access_token(
+        data={"email": user.email, "user_id": str(user.id), "role": user.role},
+        expiry=timedelta(days=REFRESH_TOKEN_EXPIRY),
+        refresh=True,
+    )
+
+    return access_token, refresh_token
