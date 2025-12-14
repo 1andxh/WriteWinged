@@ -1,19 +1,15 @@
 from pydantic import BaseModel, SecretStr, EmailStr, Field
 import uuid
 from datetime import datetime
+from typing import List
 
 
-# returned after login
 class UserResponse(BaseModel):
     id: uuid.UUID
     username: str
     email: str
     role: str
     is_verified: bool
-
-
-# class UserResponse(User):
-#     last_login: datetime
 
 
 class UserCreateModel(BaseModel):
@@ -44,7 +40,6 @@ class GoogleUser(BaseModel):
     name: str
 
     class Config:
-        # orm_mode = True  -- * 'orm_mode' has been renamed to 'from_attributes'
         from_attributes = True
 
 
@@ -53,7 +48,3 @@ class GoogleUserCreateModel(BaseModel):
     google_sub: str
     username: str
     is_verified: bool
-
-
-class OAuthCallback:
-    pass

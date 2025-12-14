@@ -84,10 +84,6 @@ def decode_token(token: str) -> dict | None:
         logging.exception(e)
 
 
-def get_current_user(token: Annotated[str, Depends(oauth_bearer)], session: session):
-    pass
-
-
 def get_tokens(user):
     access_token = create_access_token(
         data={"email": user.email, "user_id": str(user.id), "role": user.role},

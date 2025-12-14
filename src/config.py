@@ -1,4 +1,5 @@
 from pydantic_settings import SettingsConfigDict, BaseSettings
+from pydantic import SecretStr
 
 
 class CustomBaseSettings(BaseSettings):
@@ -16,6 +17,21 @@ class Config(CustomBaseSettings):
     GOOGLE_CLIENT_SECRET: str
     MIDDLEWARE_SECRET: str
     REDIS_URL: str
+
+    # mail config
+    MAIL_USERNAME: str
+    MAIL_PASSWORD: SecretStr
+    MAIL_PORT: int
+    MAIL_SERVER: str
+    MAIL_FROM: str
+    MAIL_FROM_NAME: str
+    MAIL_STARTTLS: bool = True
+    MAIL_SSL_TLS: bool = False
+    USE_CREDENTIALS: bool = True
+    VALIDATE_CERTS: bool = True
+    DOMAIN: str
+    EMAIL_SECRET: str
+    PASSWORD_RESET_SECRET: str
 
 
 config = Config()  # type: ignore
