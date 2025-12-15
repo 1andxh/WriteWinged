@@ -1,20 +1,28 @@
-from fastapi import APIRouter, Request, status, Depends
+from fastapi import APIRouter, Request, status, Depends, BackgroundTasks
 from authlib.integrations.starlette_client import OAuthError
 from fastapi.security import OAuth2PasswordRequestForm
+
+from src.mail.schemas import EmailValidator
 from .utils import oauth
 from ..db.dependency import session
 from fastapi.requests import Request
 from fastapi.exceptions import HTTPException
 from .schemas import GoogleUser, TokenResponse, UserLogin, UserCreateModel, UserResponse
 from .service import GoogleUserService, UserService
-from .dependencies import AccessTokenBearer, RefreshTokenBearer
-from fastapi.responses import JSONResponse, RedirectResponse
+from .dependencies import AccessTokenBearer, RefreshTokenBearer, get_currrent_user
+from fastapi.responses import JSONResponse, RedirectResponse, HTMLResponse
 from fastapi.exceptions import HTTPException
 from .utils import create_access_token, verify_password, get_tokens
 from datetime import timedelta, datetime
 from .models import User
-from typing import Annotated
+from typing import Annotated, Any
 from ..db.redis import add_token_to_blocklist
+from ..mail.service import MailService
+from ..mail.utils import decode_url_safe_token
+from ..mail.mail import create_message, mail
+from ..config import config
+from .templates import templates
+from datetime import datetime as dt
 import pprint
 
 GOOGLE_REDIRECT_URI = "http://127.0.0.1:8000/api/auth/callback/google"
@@ -24,6 +32,7 @@ google_user_service = GoogleUserService()
 user_service = UserService()
 access_token_bearer = AccessTokenBearer()
 refresh_token_bearer = RefreshTokenBearer()
+mail_service = MailService(config)
 
 
 """OAuth-Google"""
@@ -116,7 +125,16 @@ async def create_user_account(user: UserCreateModel, session: session):
             detail="User with this email already exists",
         )
     new_user = await user_service.create_user(user, session)
+
+    token = mail_service.create_email_verification_token(data={"email": user.email})
+    link = f"https://{config.DOMAIN}/api/auth/verify/{token}"
+
     return new_user
+
+
+@auth_router.get("/verify")
+async def verify_user(token: str, session: session):
+    pass
 
 
 @auth_router.post("/logout", status_code=status.HTTP_200_OK)
@@ -135,3 +153,33 @@ async def refresh_token(token_data: dict = Depends(refresh_token_bearer)):
     raise HTTPException(
         status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid or expired retoken"
     )
+
+
+user = Annotated[dict[str, Any], Depends(get_currrent_user)]
+
+
+@auth_router.get("/me", response_model=UserResponse)
+async def get_user(user: user):
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid Authentication credentials",
+        )
+    return user
+
+
+# emails
+@auth_router.post("/send-mail")
+async def send_mail(emails: EmailValidator, bg_task: BackgroundTasks):
+    recipients = emails.addresses
+    template = templates.get_template("base.html")
+
+    html_content = template.render({"year": dt.now().year})
+
+    message = create_message(
+        recepients=recipients,
+        subject="Collaborative writing at the 'write' place",
+        body=html_content,
+    )
+    bg_task.add_task(mail.send_message, message)
+    return {"message": "Email sent successfully"}

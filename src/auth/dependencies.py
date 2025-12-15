@@ -57,7 +57,7 @@ class RefreshTokenBearer(TokenBearer):
             )
 
 
-token_data = Annotated[dict[str, Any], Depends(AccessTokenBearer)]
+token_data = Annotated[dict[str, Any], Depends(AccessTokenBearer())]
 session = Annotated[AsyncSession, Depends(get_session)]
 
 

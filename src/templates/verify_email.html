@@ -1,0 +1,23 @@
+{ % extends "base.html" %}
+
+{ % block content % }
+<h1 style="color: #333; font-size: 20px;">Verify Your Email Address</h1>
+
+<p>Hi {{ firstname }},</p>
+
+<p>Thank you for signing up! Please verify your email by clicking the button below:</p>
+
+<a href="{{ link }}"
+   style="display: inline-block; padding: 12px 24px; background-color: #4CAF50;
+          color: white; text-decoration: none; border-radius: 5px; margin: 20px 0;">
+    Verify Email
+</a>
+
+<p style="color: #777; font-size: 12px; margin-top: 20px;">
+    If you didn't create an account, simply ignore this message.
+</p>
+
+<p style="color: #777; font-size: 12px;">
+    This link expires in 1 hour.
+</p>
+{ % endblock %}

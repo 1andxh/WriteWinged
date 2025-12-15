@@ -3,4 +3,4 @@ from typing import List
 
 
 class EmailValidator(BaseModel):
-    address: List[str]
+    addresses: List[str]
