@@ -1,6 +1,6 @@
 # WriteWinged API
 
-A collaborative writing platform backend 
+A collaborative writing platform backend
 
 ## What is WriteWinged?
 
@@ -14,7 +14,6 @@ WriteWinged is a platform where writers can create stories, collaborate with oth
 
   - Register with email/password
   - Login with Google OAuth
-  - Login with GitHub OAuth
   - JWT-based sessions
 
 - **User Profiles**
