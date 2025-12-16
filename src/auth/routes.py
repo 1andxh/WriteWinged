@@ -7,7 +7,13 @@ from .utils import oauth
 from ..db.dependency import session
 from fastapi.requests import Request
 from fastapi.exceptions import HTTPException
-from .schemas import GoogleUser, TokenResponse, UserLogin, UserCreateModel, UserResponse
+from .schemas import (
+    GoogleUser,
+    TokenResponse,
+    UserLogin,
+    UserCreateModel,
+    UserResponse,
+)
 from .service import GoogleUserService, UserService
 from .dependencies import AccessTokenBearer, RefreshTokenBearer, get_currrent_user
 from fastapi.responses import JSONResponse, RedirectResponse, HTMLResponse
@@ -113,10 +119,10 @@ async def login(login: UserLogin, session: session):
         )
 
 
-@auth_router.post(
-    "/signup", status_code=status.HTTP_201_CREATED, response_model=UserResponse
-)
-async def create_user_account(user: UserCreateModel, session: session):
+@auth_router.post("/signup", status_code=status.HTTP_201_CREATED)
+async def create_user_account(
+    user: UserCreateModel, bg_tasks: BackgroundTasks, session: session
+):
     user_exists = await user_service.check_user_exists(user.email, session)
 
     if user_exists:
@@ -126,15 +132,39 @@ async def create_user_account(user: UserCreateModel, session: session):
         )
     new_user = await user_service.create_user(user, session)
 
-    token = mail_service.create_email_verification_token(data={"email": user.email})
+    # send mail to verify user
+    token = mail_service.email_verification_token(data={"email": user.email})
     link = f"https://{config.DOMAIN}/api/auth/verify/{token}"
+    template = templates.get_template("verify_email.html")
 
-    return new_user
+    html_content = template.render({"username": new_user.username, "link": link})
+
+    message = create_message(
+        recepients=[user.email], subject="Verify your email address", body=html_content
+    )
+    bg_tasks.add_task(mail.send_message, message)
+
+    return {"message": "A link to verify your account has been sent to your email"}
 
 
-@auth_router.get("/verify")
+@auth_router.get("/verify/{token}")
 async def verify_user(token: str, session: session):
-    pass
+    token_data = decode_url_safe_token(token, mail_service.email_serializer)
+    email = token_data.get("email")
+    if email:
+        user = await user_service.get_user_by_email(email, session)
+        if not user:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND, detail="User not found"
+            )
+        await user_service.update_user(user, {"is_verified": True}, session)
+        return JSONResponse(
+            content={"message": "Account verified successfully"},
+            status_code=status.HTTP_200_OK,
+        )
+    raise HTTPException(
+        status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="An error occured"
+    )
 
 
 @auth_router.post("/logout", status_code=status.HTTP_200_OK)
