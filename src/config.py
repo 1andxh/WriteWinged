@@ -15,6 +15,7 @@ class Config(CustomBaseSettings):
     API_VERSION: str
     GOOGLE_CLIENT_ID: str
     GOOGLE_CLIENT_SECRET: str
+    GOOGLE_REDIRECT_URI: str
     MIDDLEWARE_SECRET: str
     REDIS_URL: str
 

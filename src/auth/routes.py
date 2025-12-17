@@ -33,7 +33,6 @@ from datetime import datetime as dt
 from urllib.parse import quote
 import pprint
 
-GOOGLE_REDIRECT_URI = "http://127.0.0.1:8000/api/auth/callback/google"
 
 auth_router = APIRouter()
 google_user_service = GoogleUserService()
@@ -49,7 +48,7 @@ mail_service = MailService(config)
 @auth_router.get("/google", name="google_login")
 async def login_via_google(request: Request):
     # url = request.url_for(GOOGLE_REDIRECT_URI)
-    return await oauth.google.authorize_redirect(request, GOOGLE_REDIRECT_URI)  # type: ignore
+    return await oauth.google.authorize_redirect(request, config.GOOGLE_REDIRECT_URI)  # type: ignore
 
 
 @auth_router.get(
@@ -267,7 +266,7 @@ async def send_mail(emails: EmailValidator, bg_task: BackgroundTasks):
 
     message = create_message(
         recepients=recipients,
-        subject="Collaborative writing at the 'write' place",
+        subject="Write. Collaborate. Create",
         body=html_content,
     )
     bg_task.add_task(mail.send_message, message)
