@@ -48,3 +48,13 @@ class GoogleUserCreateModel(BaseModel):
     google_sub: str
     username: str
     is_verified: bool
+
+
+# password schema
+class PasswordResetRequest(BaseModel):
+    email: EmailStr
+
+
+class PasswordResetConfirm(BaseModel):
+    new_password: str = Field(min_length=8, max_length=255)
+    confirm_new_password: str

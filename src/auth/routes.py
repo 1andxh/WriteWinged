@@ -1,9 +1,8 @@
 from fastapi import APIRouter, Request, status, Depends, BackgroundTasks
 from authlib.integrations.starlette_client import OAuthError
 from fastapi.security import OAuth2PasswordRequestForm
-
 from src.mail.schemas import EmailValidator
-from .utils import oauth
+from .utils import oauth, hash_password
 from ..db.dependency import session
 from fastapi.requests import Request
 from fastapi.exceptions import HTTPException
@@ -13,6 +12,8 @@ from .schemas import (
     UserLogin,
     UserCreateModel,
     UserResponse,
+    PasswordResetConfirm,
+    PasswordResetRequest,
 )
 from .service import GoogleUserService, UserService
 from .dependencies import AccessTokenBearer, RefreshTokenBearer, get_currrent_user
@@ -29,6 +30,7 @@ from ..mail.mail import create_message, mail
 from ..config import config
 from .templates import templates
 from datetime import datetime as dt
+from urllib.parse import quote
 import pprint
 
 GOOGLE_REDIRECT_URI = "http://127.0.0.1:8000/api/auth/callback/google"
@@ -121,7 +123,7 @@ async def login(login: UserLogin, session: session):
 
 @auth_router.post("/signup", status_code=status.HTTP_201_CREATED)
 async def create_user_account(
-    user: UserCreateModel, bg_tasks: BackgroundTasks, session: session
+    user: UserCreateModel, bg_task: BackgroundTasks, session: session
 ):
     user_exists = await user_service.check_user_exists(user.email, session)
 
@@ -133,8 +135,10 @@ async def create_user_account(
     new_user = await user_service.create_user(user, session)
 
     # send mail to verify user
-    token = mail_service.email_verification_token(data={"email": user.email})
-    link = f"https://{config.DOMAIN}/api/auth/verify/{token}"
+    token = mail_service.create_email_verification_token(data={"email": user.email})
+    safe_token = quote(token, safe="")
+    link = f"https://{config.DOMAIN}/api/auth/verify?token={safe_token}"
+
     template = templates.get_template("verify_email.html")
 
     html_content = template.render({"username": new_user.username, "link": link})
@@ -142,29 +146,33 @@ async def create_user_account(
     message = create_message(
         recepients=[user.email], subject="Verify your email address", body=html_content
     )
-    bg_tasks.add_task(mail.send_message, message)
+    bg_task.add_task(mail.send_message, message)
 
     return {"message": "A link to verify your account has been sent to your email"}
 
 
-@auth_router.get("/verify/{token}")
+@auth_router.get("/verify")
 async def verify_user(token: str, session: session):
     token_data = decode_url_safe_token(token, mail_service.email_serializer)
     email = token_data.get("email")
-    if email:
-        user = await user_service.get_user_by_email(email, session)
-        if not user:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND, detail="User not found"
-            )
-        await user_service.update_user(user, {"is_verified": True}, session)
+    if not email:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid verification token"
+        )
+
+    user = await user_service.get_user_by_email(email, session)
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="User not found"
+        )
+    if user.is_verified:
         return JSONResponse(
-            content={"message": "Account verified successfully"},
+            content={"message": "Account already verified"},
             status_code=status.HTTP_200_OK,
         )
-    raise HTTPException(
-        status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="An error occured"
-    )
+
+    await user_service.update_user(user, {"is_verified": True}, session)
+    return {"message": "Account verified successfullly"}
 
 
 @auth_router.post("/logout", status_code=status.HTTP_200_OK)
@@ -198,7 +206,58 @@ async def get_user(user: user):
     return user
 
 
-# emails
+@auth_router.post("/request-password-reset")
+async def request_password_reset(data: PasswordResetRequest, bg_task: BackgroundTasks):
+    email = data.email
+    token = mail_service.create_password_reset_token(
+        {"email": email, "type": "password-reset"}
+    )
+    safe_token = quote(token, safe="")
+
+    link = f"https://{config.DOMAIN}/api/auth/request-password-reset?token={safe_token}"
+    template = templates.get_template("password_reset.html")
+
+    html_content = template.render({"link": link})
+
+    message = create_message(
+        recepients=[email], subject="Reset Password", body=html_content
+    )
+    bg_task.add_task(mail.send_message, message)
+
+    return {"message": "A link to reset your password has been sent to your mail"}
+
+
+@auth_router.post("/reset-password")
+async def reset_password(password: PasswordResetConfirm, token: str, session: session):
+    token_data = decode_url_safe_token(token, mail_service.password_reset_serializer)
+    if token_data.get("type") != "password-reset":
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid password reset token",
+        )
+    email = token_data.get("email")
+    if not email:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid password reset token",
+        )
+    user = await user_service.get_user_by_email(email, session)
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, detail="Could not veirfy user"
+        )
+    if password.new_password != password.confirm_new_password:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, detail="Passwords do not match"
+        )
+    password_hash = hash_password(password.confirm_new_password)
+    await user_service.update_user(user, {"password_hash": password_hash}, session)
+    return JSONResponse(
+        content={"message": "Password reset successful"}, status_code=status.HTTP_200_OK
+    )
+
+
+# test email route
 @auth_router.post("/send-mail")
 async def send_mail(emails: EmailValidator, bg_task: BackgroundTasks):
     recipients = emails.addresses

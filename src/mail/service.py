@@ -12,8 +12,8 @@ class MailService:
             secret_key=config.PASSWORD_RESET_SECRET, salt="password-reset"
         )
 
-    def email_verification_token(self, data: dict):
+    def create_email_verification_token(self, data: dict):
         return self.email_serializer.dumps(data)
 
-    def password_reset_token(self, data: dict):
+    def create_password_reset_token(self, data: dict):
         return self.password_reset_serializer.dumps(data)
