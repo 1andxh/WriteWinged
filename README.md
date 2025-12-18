@@ -4,7 +4,8 @@ A collaborative writing platform backend
 
 ## What is WriteWinged?
 
-WriteWinged is a platform where writers can create stories, collaborate with other writers, and manage different versions of their work - similar to how developers use GitHub for code.
+WriteWinged reimagines creative writing as a dynamic, version-controlled experience. Similar to how development teams build software together, WriteWinged empowers writers to build stories collaboratively—with full version history, collaborative suggestions, and transparent ownership across contributions.
+Whether you're a solo author tracking your creative iterations or a community building worlds together, WriteWinged provides the infrastructure for stories to grow, adapt, and improve through meaningful collaboration
 
 ## Features
 
