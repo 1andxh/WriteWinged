@@ -44,7 +44,8 @@ class AccessTokenBearer(TokenBearer):
         """checks tokent ytpe"""
         if token_data.get("refresh"):
             raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN, detail="Provide an access token"
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Provide an access token",
             )
 
 
@@ -53,7 +54,8 @@ class RefreshTokenBearer(TokenBearer):
         """checks tokent ytpe"""
         if not token_data.get("refresh"):
             raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN, detail="Provide an refresh token"
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Provide an refresh token",
             )
 
 
