@@ -1,5 +1,5 @@
 from fastapi.responses import JSONResponse
-from fastapi import Request, status
+from fastapi import Request, status, HTTPException
 from .exceptions import WriteWingedException
 from fastapi.exceptions import RequestValidationError
 
@@ -9,6 +9,10 @@ async def writewinged_exception_handler(request: Request, exc: WriteWingedExcept
         status_code=exc.status_code,
         content={"error": exc.__class__.__name__, "message": exc.message},
     )
+    # raise HTTPException(
+    #     status_code=exc.status_code,
+    #     detail={"error": exc.__class__.__name__, "message": exc.message},
+    # )
 
 
 async def request_validation_handler(request: Request, exc: RequestValidationError):

@@ -1,8 +1,8 @@
 from fastapi import status
-from starlette.status import HTTP_400_BAD_REQUEST
+from starlette.status import HTTP_400_BAD_REQUEST, HTTP_401_UNAUTHORIZED
 
 
-class WriteWingedExcpetion(Exception):
+class WriteWingedException(Exception):
     """
     Base class for all Exceptions
     """
@@ -13,8 +13,77 @@ class WriteWingedExcpetion(Exception):
         super().__init__(self.message)
 
 
-class AuthException(WriteWingedExcpetion):
+class AuthException(WriteWingedException):
     """Base class for all authentication/authorization Exceptions"""
 
     def __init__(self, message: str, status_code: int = status.HTTP_401_UNAUTHORIZED):
         super().__init__(message, status_code)
+
+
+class InvalidTokenException(AuthException):
+    """Raised when a token is invalid or has expired"""
+
+    def __init__(self, message: str, status_code: int = status.HTTP_401_UNAUTHORIZED):
+        super().__init__("Invalid or expired token", status_code)
+
+
+class RevokedTokenException(AuthException):
+    """Raised when a revoked token is provided"""
+
+    def __init__(self, message: str, status_code: int = status.HTTP_401_UNAUTHORIZED):
+        super().__init__("Token has been revoked", status_code)
+
+
+class AccessTokenRequiredException(AuthException):
+    """Raised when an access token is required but not provied"""
+
+    def __init__(self):
+        super().__init__(
+            "Acess token required", status_code=status.HTTP_401_UNAUTHORIZED
+        )
+
+
+class RefreshTokenRequiredException(AuthException):
+    """Raised when an refresh token is required but not provied"""
+
+    def __init__(self):
+        super().__init__(
+            "Provide refresh token", status_code=status.HTTP_401_UNAUTHORIZED
+        )
+
+
+class InvalidCredentialsException(AuthException):
+    """Raised when invalid credential is provided login"""
+
+    def __init__(self):
+        super().__init__(
+            "Invalid email or password", status_code=status.HTTP_401_UNAUTHORIZED
+        )
+
+
+class UserAlreadyExistsException(AuthException):
+    """Raised when an attempt to sign up with an email that already exists is made"""
+
+    def __init__(self, email: str):
+        self.email = email
+        super().__init__(
+            f"User with email '{email}' already exists",
+            status_code=status.HTTP_409_CONFLICT,
+        )
+
+
+class UserNotFoundException(AuthException):
+    """Raised when user not found"""
+
+    def __init__(self):
+        super().__init__("User not found", status_code=status.HTTP_404_NOT_FOUND)
+
+
+class UserNotVerifiedException(AuthException):
+    """Raise when user isn't verified"""
+
+    def __init__(self):
+        super().__init__(
+            "User account not verified. Check email to complete verification",
+            status_code=status.HTTP_403_FORBIDDEN,
+        )
