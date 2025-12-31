@@ -32,12 +32,11 @@ app = FastAPI(
 )
 
 # exception handlers
-# todo: fix type error
 app.add_exception_handler(WriteWingedException, writewinged_exception_handler)
 app.add_exception_handler(RequestValidationError, request_validation_handler)
 app.add_exception_handler(Exception, general_exception_handler)
 
-
+# middleware
 register_middleware(app)
 
 app.include_router(auth_router, prefix=f"/api/auth", tags=["auth"])

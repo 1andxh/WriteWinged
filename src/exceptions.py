@@ -87,3 +87,19 @@ class UserNotVerifiedException(AuthException):
             "User account not verified. Check email to complete verification",
             status_code=status.HTTP_403_FORBIDDEN,
         )
+
+
+# SUGGESTION EXCEPTIONS
+class SuggestionServiceException(WriteWingedException):
+    """Exceptions for service layer logic — doesn't map to HTTP"""
+
+    def __init__(self, message: str):
+        self.message = message
+        Exception.__init__(self, self.message)
+
+
+class DocumentNotAcceptingSuggestionsError(SuggestionServiceException):
+    """Document is archived/locked, can't accept suggestions"""
+
+    def __init__(self, message: str = "Document not accepting suggestions"):
+        super().__init__(message)
