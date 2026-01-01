@@ -1,10 +1,10 @@
 import sqlalchemy.dialects.postgresql as pg
-from sqlalchemy import Column, Enum as SAEnum, String, Text
+from sqlalchemy import Column, Enum as SAEnum, String, Text, DateTime
 from sqlmodel import SQLModel, Field
 import uuid
 from typing import Optional
 from enum import Enum
-from datetime import datetime
+from datetime import datetime, timezone
 
 
 class SuggestionStatus(str, Enum):
@@ -39,7 +39,10 @@ class Suggestion(SQLModel, table=True):
             server_default=SuggestionStatus.PENDING.value,
         )
     )
-    created_at: datetime = Field(sa_column=Column(pg.TIMESTAMP, default=datetime.now))
+    created_at: datetime = Field(
+        sa_column=Column(DateTime(timezone=True), nullable=False),
+        default_factory=lambda: datetime.now(timezone.utc),
+    )
     accepted_at: Optional[datetime] = Field(
         sa_column=Column(pg.TIMESTAMP, default=None)
     )
