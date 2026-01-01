@@ -98,6 +98,13 @@ class SuggestionServiceException(WriteWingedException):
         Exception.__init__(self, self.message)
 
 
+class ResourceNotFoundError(SuggestionServiceException):
+    """Raised when target resourse is not found"""
+
+    def __init__(self, message: str):
+        super().__init__(message)
+
+
 class DocumentNotAcceptingSuggestionsError(SuggestionServiceException):
     """Document is archived/locked, can't accept suggestions"""
 
