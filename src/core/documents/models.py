@@ -16,9 +16,13 @@ class Document(SQLModel, table=True):
     __tablename__: str = "documents"
 
     id: uuid.UUID = Field(
-        sa_column=Column(pg.UUID, primary_key=True, default=uuid.uuid4, nullable=False)
+        sa_column=Column(
+            pg.UUID, primary_key=True, default=uuid.uuid4, nullable=False, index=True
+        )
     )
-    owner_id: Optional[uuid.UUID] = Field(default=None, foreign_key="users.id")
+    owner_id: Optional[uuid.UUID] = Field(
+        default=None, foreign_key="users.id", index=True
+    )
     title: str = Field(
         sa_column_kwargs={"index": True, "max_length": 255, "nullable": False}
     )
@@ -30,6 +34,7 @@ class Document(SQLModel, table=True):
         )
     )
     is_archived: bool = Field(default=False)
+    current_version_id: Optional[uuid.UUID]
     created_at: datetime = Field(
         sa_column=Column(
             DateTime(timezone=True), default=lambda: datetime.now(timezone.utc)
