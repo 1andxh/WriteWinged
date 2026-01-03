@@ -3,8 +3,9 @@ from datetime import datetime, timezone
 from enum import Enum
 from typing import Optional, List
 from sqlmodel import SQLModel, Field, Relationship
-from sqlalchemy import Column, Enum as SAEnum, String, Text, DateTime
+from sqlalchemy import Column, Enum as SAEnum, String, Text, DateTime, ForeignKey, func
 import sqlalchemy.dialects.postgresql as pg
+from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 
 
 class DocumentVisibility(str, Enum):
@@ -12,31 +13,49 @@ class DocumentVisibility(str, Enum):
     PUBLIC = "public"
 
 
-class Document(SQLModel, table=True):
-    __tablename__: str = "documents"
+class DocumentState(str, Enum):
+    ACTIVE = "active"
+    LOCKED = "locked"
+    ARCHIVED = "archived"
 
-    id: uuid.UUID = Field(
-        sa_column=Column(
-            pg.UUID, primary_key=True, default=uuid.uuid4, nullable=False, index=True
-        )
+
+class Base(DeclarativeBase):
+    pass
+
+
+class DocumentORM(Base):
+    __tablename__ = "documents"
+
+    id: Mapped[uuid.UUID] = mapped_column(
+        pg.UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
     )
-    owner_id: Optional[uuid.UUID] = Field(
-        default=None, foreign_key="users.id", index=True
+
+    owner_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("users.id", ondelete="RESTRICT"), index=True
     )
-    title: str = Field(
-        sa_column_kwargs={"index": True, "max_length": 255, "nullable": False}
+    visibility: Mapped[DocumentVisibility] = mapped_column(
+        SAEnum(DocumentVisibility, name="visibility_enum", native_enum=False),
+        server_default=DocumentVisibility.PUBLIC.value,
+        nullable=False,
     )
-    visibility: DocumentVisibility = Field(
-        sa_column=Column(
-            SAEnum(DocumentVisibility, name="visibility_enum", native_enum=False),
-            server_default=DocumentVisibility.PUBLIC.value,
-            nullable=False,
-        )
+    state: Mapped[DocumentState] = mapped_column(
+        SAEnum(DocumentState, name="document_state", native_enum=False),
+        server_default=DocumentState.ACTIVE.value,
+        nullable=False,
     )
-    is_archived: bool = Field(default=False)
-    current_version_id: Optional[uuid.UUID]
-    created_at: datetime = Field(
-        sa_column=Column(
-            DateTime(timezone=True), default=lambda: datetime.now(timezone.utc)
-        )
+
+    current_version_id: Mapped[Optional[uuid.UUID]] = mapped_column(
+        ForeignKey("versions.id", ondelete="SET NULL")
+    )
+
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), insert_default=func.now()
+    )
+
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), insert_default=func.now(), onupdate=func.now()
+    )
+
+    deleted_at: Mapped[Optional[datetime]] = mapped_column(
+        DateTime(timezone=True), index=True
     )
