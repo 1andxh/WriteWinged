@@ -32,6 +32,11 @@ from .templates import templates
 from datetime import datetime as dt
 from urllib.parse import quote
 import pprint
+from ..exceptions import (
+    InvalidCredentialsException,
+    UserAlreadyExistsException,
+    InvalidTokenException,
+)
 
 
 auth_router = APIRouter()
@@ -115,9 +120,10 @@ async def login(login: UserLogin, session: session):
                     "refresh_token": refresh_token,
                 },
             )
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid Credentials"
-        )
+        # raise HTTPException(
+        #     status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid Credentials"
+        # )
+        raise InvalidCredentialsException()
 
 
 @auth_router.post("/signup", status_code=status.HTTP_201_CREATED)
@@ -127,10 +133,11 @@ async def create_user_account(
     user_exists = await user_service.check_user_exists(user.email, session)
 
     if user_exists:
-        raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT,
-            detail="User with this email already exists",
-        )
+        # raise HTTPException(
+        #     status_code=status.HTTP_409_CONFLICT,
+        #     detail="User with this email already exists",
+        # )
+        raise UserAlreadyExistsException(user.email)
     new_user = await user_service.create_user(user, session)
 
     # send mail to verify user
@@ -187,9 +194,7 @@ async def refresh_token(token_data: dict = Depends(refresh_token_bearer)):
     if datetime.fromtimestamp(expiry) > datetime.now():
         access_token = create_access_token(data=token_data["user"])
         return JSONResponse(content={"access_token": access_token})
-    raise HTTPException(
-        status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid or expired retoken"
-    )
+    raise InvalidTokenException()
 
 
 user = Annotated[dict[str, Any], Depends(get_currrent_user)]
@@ -198,10 +203,7 @@ user = Annotated[dict[str, Any], Depends(get_currrent_user)]
 @auth_router.get("/me", response_model=UserResponse)
 async def get_user(user: user):
     if not user:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid Authentication credentials",
-        )
+        raise InvalidCredentialsException()
     return user
 
 

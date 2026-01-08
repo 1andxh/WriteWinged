@@ -23,8 +23,12 @@ class AuthException(WriteWingedException):
 class InvalidTokenException(AuthException):
     """Raised when a token is invalid or has expired"""
 
-    def __init__(self, message: str, status_code: int = status.HTTP_401_UNAUTHORIZED):
-        super().__init__("Invalid or expired token", status_code)
+    def __init__(
+        self,
+        message: str = "Invalid or expired token",
+        status_code: int = status.HTTP_401_UNAUTHORIZED,
+    ):
+        super().__init__(message, status_code)
 
 
 class RevokedTokenException(AuthException):
@@ -110,3 +114,29 @@ class DocumentNotAcceptingSuggestionsError(SuggestionServiceException):
 
     def __init__(self, message: str = "Document not accepting suggestions"):
         super().__init__(message)
+
+
+# DOCUMENT EXCEPTIONS
+class DocumentError(WriteWingedException):
+    """Base exception for document domain errors."""
+
+
+class DocumentNotFound(DocumentError):
+    """Raised when document is not found"""
+
+    def __init__(self, message: str = "Document not found"):
+        super().__init__(message, status_code=status.HTTP_404_NOT_FOUND)
+
+
+class DocumentPermissionDenied(DocumentError):
+    """Raised when actor lacks permission"""
+
+    def __init__(self, message: str = "Permission denied"):
+        super().__init__(message, status_code=status.HTTP_403_FORBIDDEN)
+
+
+class InvalidDocumentState(DocumentError):
+    """Raised when state transition contradicts allowed transistions"""
+
+    def __init__(self, message: str = "Invalid document state"):
+        super().__init__(message, status_code=status.HTTP_409_CONFLICT)

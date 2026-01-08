@@ -9,12 +9,12 @@ from .utils import hash_password
 
 
 class UserService:
-    async def get_user_by_email(self, email: str, session: AsyncSession):
+    async def get_user_by_email(self, email: str, session: AsyncSession) -> User | None:
         statement = select(User).where(User.email == email)
         result = await session.execute(statement)
         return result.scalar_one_or_none()
 
-    async def check_user_exists(self, email: str, session: AsyncSession):
+    async def check_user_exists(self, email: str, session: AsyncSession) -> bool:
         user = await self.get_user_by_email(email, session)
         return user is not None
 
