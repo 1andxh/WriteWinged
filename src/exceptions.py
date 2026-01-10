@@ -140,3 +140,13 @@ class InvalidDocumentState(DocumentError):
 
     def __init__(self, message: str = "Invalid document state"):
         super().__init__(message, status_code=status.HTTP_409_CONFLICT)
+
+
+class DocumentNotMutable(DocumentError):
+    def __init__(self, message: str = "Document is archived and cannot be changed"):
+        super().__init__(message, status_code=status.HTTP_400_BAD_REQUEST)
+
+
+class DuplicateDocumentTitle(DocumentError):
+    def __init__(self, message: str = "A document with this title already exists"):
+        super().__init__(message, status_code=status.HTTP_400_BAD_REQUEST)
