@@ -3,7 +3,16 @@ from datetime import datetime, timezone
 from enum import Enum
 from typing import Optional, List
 from sqlmodel import SQLModel, Field, Relationship
-from sqlalchemy import Column, Enum as SAEnum, String, Text, DateTime, ForeignKey, func
+from sqlalchemy import (
+    Column,
+    Enum as SAEnum,
+    String,
+    Text,
+    DateTime,
+    ForeignKey,
+    func,
+    Index,
+)
 import sqlalchemy.dialects.postgresql as pg
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 
@@ -46,7 +55,7 @@ class DocumentORM(Base):
     )
 
     current_version_id: Mapped[Optional[uuid.UUID]] = mapped_column(
-        ForeignKey("versions.id", ondelete="SET NULL")
+        ForeignKey("versions.id", ondelete="SET NULL"), nullable=True
     )
 
     created_at: Mapped[datetime] = mapped_column(
@@ -59,4 +68,12 @@ class DocumentORM(Base):
 
     deleted_at: Mapped[Optional[datetime]] = mapped_column(
         DateTime(timezone=True), index=True
+    )
+
+    __table_args__ = Index(
+        "uq_documents_owner_title_active",
+        "owner_id",
+        func.lower(title),
+        unique=True,
+        postgresql_where=(deleted_at.is_(None)),
     )

@@ -143,7 +143,7 @@ class InvalidDocumentState(DocumentError):
 
 
 class DocumentNotMutable(DocumentError):
-    def __init__(self, message: str = "Document is archived and cannot be changed"):
+    def __init__(self, message: str):
         super().__init__(message, status_code=status.HTTP_400_BAD_REQUEST)
 
 
