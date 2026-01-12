@@ -147,6 +147,6 @@ class DocumentNotMutable(DocumentError):
         super().__init__(message, status_code=status.HTTP_400_BAD_REQUEST)
 
 
-class DuplicateDocumentTitle(DocumentError):
+class DocumentTitleConflict(DocumentError):
     def __init__(self, message: str = "A document with this title already exists"):
-        super().__init__(message, status_code=status.HTTP_400_BAD_REQUEST)
+        super().__init__(message, status_code=status.HTTP_409_CONFLICT)

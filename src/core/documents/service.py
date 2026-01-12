@@ -1,14 +1,14 @@
 # from ...db.dependency import session
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, desc
-from .models import DocumentORM, DocumentState
+from .models import DocumentORM, DocumentState, DocumentVisibility
 from ...exceptions import (
     DocumentError,
     DocumentNotAcceptingSuggestionsError,
     DocumentPermissionDenied,
     DocumentNotFound,
     DocumentNotMutable,
-    DuplicateDocumentTitle,
+    DocumentTitleConflict,
     InvalidDocumentState,
 )
 from datetime import datetime, timezone
@@ -50,6 +50,14 @@ class DocumentService:
 
         return list(result.scalars().all())
 
+    async def list_public_documents(self) -> list[DocumentORM]:
+        statement = select(DocumentORM).where(
+            DocumentORM.visibility == DocumentVisibility.PUBLIC,
+            DocumentORM.deleted_at.is_(None),
+        )
+        result = await self.session.execute(statement)
+        return list(result.scalars().all())
+
     async def get_document(self, document_id) -> DocumentORM:
         statement = select(DocumentORM).where(
             DocumentORM.id == document_id, DocumentORM.deleted_at == None
@@ -79,7 +87,7 @@ class DocumentService:
             await self.session.flush()
         except IntegrityError:
             await self.session.rollback()
-            raise DuplicateDocumentTitle()
+            raise DocumentTitleConflict()
 
         await self.session.commit()
         await self.session.refresh(document)
@@ -106,7 +114,7 @@ class DocumentService:
             await self.session.refresh(document)
         except IntegrityError:
             await self.session.rollback()
-            raise DuplicateDocumentTitle()
+            raise DocumentTitleConflict()
 
         return document
 

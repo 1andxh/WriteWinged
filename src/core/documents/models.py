@@ -52,6 +52,7 @@ class DocumentORM(Base):
         SAEnum(DocumentState, name="document_state", native_enum=False),
         server_default=DocumentState.ACTIVE.value,
         nullable=False,
+        index=True,
     )
 
     current_version_id: Mapped[Optional[uuid.UUID]] = mapped_column(
