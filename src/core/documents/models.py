@@ -14,7 +14,8 @@ from sqlalchemy import (
     Index,
 )
 import sqlalchemy.dialects.postgresql as pg
-from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
+from sqlalchemy.orm import Mapped, mapped_column, relationship
+from ...db.base import Base
 
 
 class DocumentVisibility(str, Enum):
@@ -26,10 +27,6 @@ class DocumentState(str, Enum):
     ACTIVE = "active"
     LOCKED = "locked"
     ARCHIVED = "archived"
-
-
-class Base(DeclarativeBase):
-    pass
 
 
 class DocumentORM(Base):
@@ -55,9 +52,9 @@ class DocumentORM(Base):
         index=True,
     )
 
-    current_version_id: Mapped[Optional[uuid.UUID]] = mapped_column(
-        ForeignKey("versions.id", ondelete="SET NULL"), nullable=True
-    )
+    # current_version_id: Mapped[Optional[uuid.UUID]] = mapped_column(
+    #     ForeignKey("versions.id", ondelete="SET NULL"), nullable=True
+    # )
 
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), insert_default=func.now()
@@ -71,10 +68,12 @@ class DocumentORM(Base):
         DateTime(timezone=True), index=True
     )
 
-    __table_args__ = Index(
-        "uq_documents_owner_title_active",
-        "owner_id",
-        func.lower(title),
-        unique=True,
-        postgresql_where=(deleted_at.is_(None)),
+    __table_args__ = (
+        Index(
+            "uq_documents_owner_title_active",
+            "owner_id",
+            func.lower(title),
+            unique=True,
+            postgresql_where=(deleted_at.is_(None)),
+        ),
     )

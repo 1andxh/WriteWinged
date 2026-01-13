@@ -7,7 +7,11 @@ from sqlalchemy.ext.asyncio import async_engine_from_config
 
 from alembic import context
 from sqlmodel import SQLModel
+from src.core.documents.models import Base, DocumentORM
+from src.auth.models import User
 from src.config import config
+
+# from src.core.documents.models import DocumentORM
 
 
 database_url = config.DATABASE_URL
@@ -24,7 +28,7 @@ if config.config_file_name is not None:
 # for 'autogenerate' support
 # from myapp import mymodel
 # target_metadata = mymodel.Base.metadata
-target_metadata = SQLModel.metadata
+target_metadata = [SQLModel.metadata, Base.metadata]
 
 # other values from the config, defined by the needs of env.py,
 # can be acquired:
@@ -68,9 +72,12 @@ async def run_async_migrations() -> None:
     and associate a connection with the context.
 
     """
+    section = config.get_section(config.config_ini_section, {})
+    section["sqlalchemy.url"] = database_url
 
     connectable = async_engine_from_config(
-        config.get_section(config.config_ini_section, {}),
+        # config.get_section(config.config_ini_section, {}),
+        section,
         prefix="sqlalchemy.",
         poolclass=pool.NullPool,
     )

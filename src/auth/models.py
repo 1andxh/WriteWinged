@@ -1,11 +1,14 @@
 import sqlalchemy.dialects.postgresql as pg
-from sqlalchemy import Column, Enum as SAEnum, String
+from sqlalchemy import Column, Enum as SAEnum, String, DateTime, Boolean, func
 from sqlmodel import SQLModel, Field
 from datetime import datetime
 import uuid
 from enum import Enum
 from pydantic import EmailStr, SecretStr
 from typing import Optional
+from ..db.base import Base
+from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy.orm import Mapped, mapped_column
 
 
 class AuthProvider(str, Enum):
@@ -19,29 +22,68 @@ class UserRole(str, Enum):
     ADMIN = "admin"
 
 
-class User(SQLModel, table=True):
-    __tablename__: str = "users"
+class User(Base):
+    __tablename__ = "users"
 
-    id: uuid.UUID = Field(
-        sa_column=Column(pg.UUID, primary_key=True, default=uuid.uuid4, nullable=False)
+    id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        primary_key=True,
+        default=uuid.uuid4,
     )
-    email: EmailStr = Field(
-        sa_column=Column(String(255), unique=True, nullable=False, index=True)
+
+    email: Mapped[str] = mapped_column(
+        String(255),
+        unique=True,
+        nullable=False,
+        index=True,
     )
-    username: str = Field(sa_column=Column(String(128), unique=True, nullable=False))
-    google_sub: str = Field(
-        sa_column=Column(String(255), unique=True, nullable=True, index=True)
+
+    username: Mapped[str] = mapped_column(
+        String(128),
+        unique=True,
+        nullable=False,
     )
-    password_hash: str = Field(sa_column=Column(String(255), nullable=True))
-    bio: str = Field(sa_column=Column(String(255), nullable=True))
-    role: UserRole = Field(
-        sa_column=Column(
-            SAEnum(UserRole, name="role_enum", native_enum=False),
-            server_default=None,
-            nullable=False,
-        )
+
+    google_sub: Mapped[str | None] = mapped_column(
+        String(255),
+        unique=True,
+        nullable=True,
+        index=True,
     )
-    is_verified: bool = Field(default=False)
-    last_login: datetime = Field(sa_column=Column(pg.TIMESTAMP, default=datetime.now))
-    created_at: datetime = Field(sa_column=Column(pg.TIMESTAMP, default=datetime.now))
-    updated_at: datetime = Field(sa_column=Column(pg.TIMESTAMP, default=datetime.now))
+
+    password_hash: Mapped[str | None] = mapped_column(
+        String(255),
+        nullable=True,
+    )
+
+    bio: Mapped[str | None] = mapped_column(
+        String(255),
+        nullable=True,
+    )
+
+    role: Mapped[UserRole] = mapped_column(
+        SAEnum(UserRole, name="role_enum", native_enum=False),
+        nullable=False,
+    )
+
+    is_verified: Mapped[bool] = mapped_column(
+        Boolean,
+        default=False,
+        nullable=False,
+    )
+
+    last_login: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True),
+        insert_default=func.now(),
+        nullable=True,
+    )
+
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), insert_default=func.now()
+    )
+
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        insert_default=func.now(),
+        nullable=False,
+    )

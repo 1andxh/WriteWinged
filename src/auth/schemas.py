@@ -15,12 +15,12 @@ class UserResponse(BaseModel):
 class UserCreateModel(BaseModel):
     username: str
     email: EmailStr = Field(min_length=8)
-    password: str = Field(min_length=8, max_length=255)
+    password_hash: str = Field(min_length=8, max_length=255)
 
 
 class UserLogin(BaseModel):
     email: EmailStr
-    password: str
+    password_hash: str
 
 
 class UserCreateBio(BaseModel):

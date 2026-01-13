@@ -109,7 +109,9 @@ async def auth_via_google(request: Request, session: session):
 async def login(login: UserLogin, session: session):
     user = await user_service.get_user_by_email(login.email, session)
     if user is not None:
-        is_valid_password = verify_password(login.password, user.password_hash)
+        is_valid_password = verify_password(
+            login.password_hash, str(user.password_hash)
+        )
         if is_valid_password:
             access_token, refresh_token = get_tokens(user)
 

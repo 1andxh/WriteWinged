@@ -8,6 +8,7 @@ from sqlalchemy.ext.asyncio import (
 from typing import AsyncGenerator, Annotated
 from src.config import config
 from src.auth.models import User
+from ..core.documents.models import DocumentORM
 
 # note: import models before metadata.create_all()
 

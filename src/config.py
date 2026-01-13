@@ -1,5 +1,6 @@
 from pydantic_settings import SettingsConfigDict, BaseSettings
 from pydantic import SecretStr
+from sqlalchemy import create_engine, inspect
 
 
 class CustomBaseSettings(BaseSettings):
@@ -36,3 +37,11 @@ class Config(CustomBaseSettings):
 
 
 config = Config()  # type: ignore
+
+print(config.DATABASE_URL)
+
+
+# engine = create_engine(config.DATABASE_URL)
+# insp = inspect(engine)
+# tables = insp.get_table_names()
+# print(tables)
