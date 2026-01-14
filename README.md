@@ -32,7 +32,7 @@ Whether you're a solo author tracking your creative iterations or a community bu
   - Pagination logic (limit and offset) for optimized list retrieval
   - Mutability guards to prevent edits on archived or locked content
 
-  ### In progress
+### In progress
 
 - **Collaboration**
 
