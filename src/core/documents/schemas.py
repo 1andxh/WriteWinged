@@ -3,7 +3,7 @@ from datetime import datetime
 import uuid
 
 
-class DocumentCommandResponse(BaseModel):
+class DocumentResponse(BaseModel):
     document_id: uuid.UUID
     state: str
     updated_at: datetime
@@ -18,6 +18,7 @@ class DocumentCreateRequest(BaseModel):
 
 class DocumentRenameRequest(BaseModel):
     title: str
+    visibililty: str | None
 
 
 class DocumentReadResponse(BaseModel):

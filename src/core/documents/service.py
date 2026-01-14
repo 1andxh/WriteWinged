@@ -1,4 +1,4 @@
-# from ...db.dependency import session
+from ...db.dependency import session
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, desc
 from .models import DocumentORM, DocumentState, DocumentVisibility
@@ -50,10 +50,18 @@ class DocumentService:
 
         return list(result.scalars().all())
 
-    async def list_public_documents(self) -> list[DocumentORM]:
+    async def list_public_documents(
+        self, search_query: str | None = None, limit: int = 10, offset: int = 0
+    ) -> list[DocumentORM]:
         statement = select(DocumentORM).where(
             DocumentORM.visibility == DocumentVisibility.PUBLIC,
             DocumentORM.deleted_at.is_(None),
+        )
+        if search_query:
+            statement = statement.where(DocumentORM.title.ilike(f"%{search_query}%"))
+
+        statement = (
+            statement.limit(limit).offset(offset).order_by(desc(DocumentORM.updated_at))
         )
         result = await self.session.execute(statement)
         return list(result.scalars().all())
@@ -79,7 +87,10 @@ class DocumentService:
         title = clean_title
 
         document = DocumentORM(
-            owner_id=actor_id, title=title, state=DocumentState.ACTIVE
+            owner_id=actor_id,
+            title=title,
+            state=DocumentState.ACTIVE,
+            visibility=DocumentVisibility.PUBLIC,
         )
 
         self.session.add(document)

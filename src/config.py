@@ -38,8 +38,6 @@ class Config(CustomBaseSettings):
 
 config = Config()  # type: ignore
 
-print(config.DATABASE_URL)
-
 
 # engine = create_engine(config.DATABASE_URL)
 # insp = inspect(engine)
