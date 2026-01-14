@@ -18,7 +18,6 @@ class DocumentCreateRequest(BaseModel):
 
 class DocumentRenameRequest(BaseModel):
     title: str
-    visibililty: str | None
 
 
 class DocumentReadResponse(BaseModel):

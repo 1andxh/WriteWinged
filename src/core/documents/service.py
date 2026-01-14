@@ -31,21 +31,36 @@ class DocumentService:
         if document.deleted_at is not None:
             raise DocumentNotMutable("Document is deleted")
 
+        if document.state == DocumentState.ARCHIVED:
+            raise DocumentNotMutable("Unarchive the document to make changes.")
+
+        if document.state == DocumentState.LOCKED:
+            raise DocumentNotMutable("Unlock the document to make changes.")
+
         if document.state != DocumentState.ACTIVE:
             raise DocumentNotMutable(
                 f"Document is not mutable in '{document.state}' state"
             )
 
-    async def get_all_documents(self, actor_id: uuid.UUID) -> list[DocumentORM]:
-        statement = (
-            select(DocumentORM)
-            .where(
-                DocumentORM.owner_id == actor_id,
-                DocumentORM.state == DocumentState.ACTIVE,
-                DocumentORM.deleted_at.is_(None),
-            )
-            .order_by(desc(DocumentORM.updated_at))
+    async def get_all_documents(
+        self,
+        actor_id: uuid.UUID,
+        search_query: str | None = None,
+        limit: int = 10,
+        offset: int = 0,
+    ) -> list[DocumentORM]:
+        statement = select(DocumentORM).where(
+            DocumentORM.owner_id == actor_id,
+            DocumentORM.state.in_([DocumentState.ACTIVE, DocumentState.LOCKED]),
+            DocumentORM.deleted_at.is_(None),
         )
+        if search_query:
+            statement = statement.where(DocumentORM.title.ilike(f"%{search_query}%"))
+
+        statement = (
+            statement.order_by(desc(DocumentORM.updated_at)).limit(limit).offset(offset)
+        )
+
         result = await self.session.execute(statement)
 
         return list(result.scalars().all())
@@ -63,6 +78,7 @@ class DocumentService:
         statement = (
             statement.limit(limit).offset(offset).order_by(desc(DocumentORM.updated_at))
         )
+
         result = await self.session.execute(statement)
         return list(result.scalars().all())
 
@@ -76,6 +92,26 @@ class DocumentService:
         if document is None:
             raise DocumentNotFound()
         return document
+
+    async def get_archived_documents(
+        self,
+        actor_id: uuid.UUID,
+        search_query: str | None = None,
+        limit: int = 10,
+        offset: int = 0,
+    ) -> list[DocumentORM]:
+        statement = select(DocumentORM).where(
+            DocumentORM.owner_id == actor_id,
+            DocumentORM.state == DocumentState.ARCHIVED,
+            DocumentORM.deleted_at.is_(None),
+        )
+        if search_query:
+            statement = statement.where(DocumentORM.title.ilike(f"%{search_query}%"))
+        statement = (
+            statement.order_by(desc(DocumentORM.updated_at)).limit(limit).offset(offset)
+        )
+        result = await self.session.execute(statement)
+        return list(result.scalars().all())
 
     async def create_document(self, actor_id: uuid.UUID, title: str) -> DocumentORM:
         if not actor_id:
