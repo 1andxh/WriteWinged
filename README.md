@@ -18,16 +18,21 @@ Whether you're a solo author tracking your creative iterations or a community bu
   - JWT-based sessions
 
 - **User Profiles**
+
   - Profile information (name, bio, avatar)
   - Support for OAuth avatars and custom uploads
 
-### 🚧 Coming Soon
-
 - **Documents**
 
-  - Create and edit stories/articles
-  - Public and private documents
-  - Rich text formatting
+  - CRUD operations for stories and articles
+  - Public and private visibility controls
+  - State management for lifecycle control (Active, Locked, Archived)
+  - Soft deletion using timestamps to prevent accidental data loss
+  - Advanced search with title-based filtering
+  - Pagination logic (limit and offset) for optimized list retrieval
+  - Mutability guards to prevent edits on archived or locked content
+
+  ### In progress
 
 - **Collaboration**
 
@@ -49,6 +54,6 @@ Whether you're a solo author tracking your creative iterations or a community bu
 
 ## Current Status
 
-🚀 **In Active Development**
+**In Active Development**
 
 This project is part of my journey learning backend development with FastAPI. Currently implementing core authentication and will be adding collaborative writing features next.
