@@ -26,7 +26,7 @@ async def get_public_documents(
     service: document_service,
     q: str | None = Query(None, description="search documents by title"),
     limit: int = Query(10, le=100),
-    offset: int = Query(0, ge=10),
+    offset: int = Query(0, ge=0),
 ):
     documents = await service.list_public_documents(
         search_query=q, limit=limit, offset=offset
