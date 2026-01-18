@@ -16,6 +16,7 @@ from sqlalchemy import (
 import sqlalchemy.dialects.postgresql as pg
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from ...db.base import Base
+from ..versions.models import VersionORM
 
 
 class DocumentVisibility(str, Enum):
@@ -52,9 +53,23 @@ class DocumentORM(Base):
         index=True,
     )
 
-    # current_version_id: Mapped[Optional[uuid.UUID]] = mapped_column(
-    #     ForeignKey("versions.id", ondelete="SET NULL"), nullable=True
-    # )
+    published_version_id: Mapped[uuid.UUID | None] = mapped_column(
+        pg.UUID(as_uuid=True),
+        ForeignKey(
+            "versions.id",
+            use_alter=True,
+            name="fk_published_version",
+            ondelete="SET NULL",
+        ),
+        nullable=True,
+    )
+    draft_version_id: Mapped[uuid.UUID | None] = mapped_column(
+        pg.UUID(as_uuid=True),
+        ForeignKey(
+            "versions.id", use_alter=True, name="fk_draft_version", ondelete="SET NULL"
+        ),
+        nullable=True,
+    )
 
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), insert_default=func.now()
@@ -66,6 +81,13 @@ class DocumentORM(Base):
 
     deleted_at: Mapped[Optional[datetime]] = mapped_column(
         DateTime(timezone=True), index=True
+    )
+    # relations
+    published_version: Mapped["VersionORM"] = relationship(
+        foreign_keys=[published_version_id], post_update=True
+    )
+    draft_version: Mapped["VersionORM"] = relationship(
+        foreign_keys=[draft_version_id], post_update=True
     )
 
     __table_args__ = (
