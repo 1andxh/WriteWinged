@@ -8,7 +8,8 @@ from pydantic import EmailStr, SecretStr
 from typing import Optional
 from ..db.base import Base
 from sqlalchemy.dialects.postgresql import UUID
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.orm import Mapped, mapped_column, relationship
+from ..core.documents.models import DocumentORM
 
 
 class AuthProvider(str, Enum):
@@ -87,3 +88,6 @@ class User(Base):
         insert_default=func.now(),
         nullable=False,
     )
+
+    # relationship
+    documents: Mapped[list["DocumentORM"]] = relationship(back_populates="owner")

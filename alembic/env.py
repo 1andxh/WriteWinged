@@ -7,8 +7,10 @@ from sqlalchemy.ext.asyncio import async_engine_from_config
 
 from alembic import context
 from sqlmodel import SQLModel
-from src.core.documents.models import Base, DocumentORM
+from src.db.base import Base
+from src.core.documents.models import DocumentORM
 from src.auth.models import User
+from src.core.versions.models import VersionORM
 from src.config import config
 
 # from src.core.documents.models import DocumentORM
@@ -28,7 +30,7 @@ if config.config_file_name is not None:
 # for 'autogenerate' support
 # from myapp import mymodel
 # target_metadata = mymodel.Base.metadata
-target_metadata = [SQLModel.metadata, Base.metadata]
+target_metadata = [Base.metadata]
 
 # other values from the config, defined by the needs of env.py,
 # can be acquired:

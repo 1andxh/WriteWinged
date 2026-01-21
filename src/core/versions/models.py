@@ -2,7 +2,6 @@ import sqlalchemy.dialects.postgresql as pg
 from sqlalchemy import Enum as SAEnum, String, Text, DateTime, func, ForeignKey, Integer
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 import uuid
-from typing import Optional
 from datetime import datetime, timezone
 from ...db.base import Base
 from ..documents.models import DocumentORM
