@@ -93,27 +93,27 @@ class UserNotVerifiedException(AuthException):
         )
 
 
-# SUGGESTION EXCEPTIONS
-class SuggestionServiceException(WriteWingedException):
-    """Exceptions for service layer logic — doesn't map to HTTP"""
+# # SUGGESTION EXCEPTIONS
+# class SuggestionServiceException(WriteWingedException):
+#     """Exceptions for service layer logic """
 
-    def __init__(self, message: str):
-        self.message = message
-        Exception.__init__(self, self.message)
-
-
-class ResourceNotFoundError(SuggestionServiceException):
-    """Raised when target resourse is not found"""
-
-    def __init__(self, message: str):
-        super().__init__(message)
+#     def __init__(self, message: str):
+#         self.message = message
+#         Exception.__init__(self, self.message)
 
 
-class DocumentNotAcceptingSuggestionsError(SuggestionServiceException):
-    """Document is archived/locked, can't accept suggestions"""
+# class ResourceNotFoundError(SuggestionServiceException):
+#     """Raised when target resourse is not found"""
 
-    def __init__(self, message: str = "Document not accepting suggestions"):
-        super().__init__(message)
+#     def __init__(self, message: str):
+#         super().__init__(message)
+
+
+# class DocumentNotAcceptingSuggestionsError(SuggestionServiceException):
+#     """Document is archived/locked, can't accept suggestions"""
+
+#     def __init__(self, message: str = "Document not accepting suggestions"):
+#         super().__init__(message)
 
 
 # DOCUMENT EXCEPTIONS
@@ -150,3 +150,12 @@ class DocumentNotMutable(DocumentError):
 class DocumentTitleConflict(DocumentError):
     def __init__(self, message: str = "A document with this title already exists"):
         super().__init__(message, status_code=status.HTTP_409_CONFLICT)
+
+
+# VERSION EXCEPTIONS
+class VersionDoesNotExist(DocumentError):
+    """Raised when version does not exists or is not found"""
+
+    def __init__(self, message: str = "Version does not exists"):
+        self.message = message
+        Exception.__init__(self, self.message)
