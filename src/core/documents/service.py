@@ -3,8 +3,6 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, desc
 from .models import DocumentORM, DocumentState, DocumentVisibility
 from ...exceptions import (
-    DocumentError,
-    DocumentNotAcceptingSuggestionsError,
     DocumentPermissionDenied,
     DocumentNotFound,
     DocumentNotMutable,
@@ -103,7 +101,7 @@ class DocumentService:
         statement = select(DocumentORM).where(
             DocumentORM.owner_id == actor_id,
             DocumentORM.state == DocumentState.ARCHIVED,
-            DocumentORM.deleted_at.is_(None),
+            # DocumentORM.deleted_at.is_(None),
         )
         if search_query:
             statement = statement.where(DocumentORM.title.ilike(f"%{search_query}%"))

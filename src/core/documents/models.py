@@ -1,3 +1,4 @@
+# from __future__ import annotations
 import uuid
 from datetime import datetime, timezone
 from enum import Enum
@@ -15,13 +16,15 @@ from sqlalchemy import (
 )
 import sqlalchemy.dialects.postgresql as pg
 from sqlalchemy.orm import Mapped, mapped_column, relationship
-from ...db.base import Base
-from ..versions.models import VersionORM
-from ...auth.models import User
+from src.db.base import Base
+
+# from src.core.versions import VersionORM
+# from src.auth.models import User
 
 # using type check pattern
-# if TYPE_CHECKING:
-#     from ..versions.models import VersionORM
+if TYPE_CHECKING:
+    from src.core.versions import VersionORM
+    from src.auth.models import User
 
 
 class DocumentVisibility(str, Enum):
@@ -89,9 +92,10 @@ class DocumentORM(Base):
     )
     # relations
     versions: Mapped[list["VersionORM"]] = relationship(
-        back_populates="documents",
+        back_populates="document",
         foreign_keys="[VersionORM.document_id]",
         cascade="all, delete-orphan",
+        lazy="selectin",
     )
     published_version: Mapped["VersionORM"] = relationship(
         foreign_keys=[published_version_id], post_update=True

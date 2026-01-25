@@ -156,6 +156,12 @@ class DocumentTitleConflict(DocumentError):
 class VersionDoesNotExist(DocumentError):
     """Raised when version does not exists or is not found"""
 
-    def __init__(self, message: str = "Version does not exists"):
+    def __init__(self, message: str = "Version does not exist"):
+        self.message = message
+        Exception.__init__(self, self.message)
+
+
+class VersionMismatch(DocumentError):
+    def __init__(self, message: str = "Version does not belong to document"):
         self.message = message
         Exception.__init__(self, self.message)
