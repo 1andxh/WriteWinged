@@ -1,7 +1,8 @@
 # from src.db.dependency import session
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select
+from sqlalchemy import select, asc, desc
 from src.core.documents import DocumentORM
+from src.core.documents.models import DocumentVisibility
 from src.core.versions import VersionORM
 import uuid
 from src.core.versions.utils import (
@@ -80,7 +81,7 @@ class VersionService:
             version = version_result.scalar_one_or_none()
 
             if version is None:
-                raise VersionDoesNotExist("")
+                raise VersionDoesNotExist()
             ensure_version_belongs(version, document_id)
 
             # pointer swap
@@ -110,3 +111,35 @@ class VersionService:
             if document.published_version_id is None:
                 return
             document.published_version_id = None
+
+    async def get_version(
+        self, document_id: uuid.UUID, actor_id, version_id: uuid.UUID | None = None
+    ) -> VersionORM:
+        statement = select(VersionORM).where(
+            VersionORM.id == version_id, VersionORM.document_id == document_id
+        )
+        result = await self.session.execute(statement)
+        version = result.scalar_one_or_none()
+        if version is None:
+            raise VersionDoesNotExist("")
+        document = version.document
+        if document.visibility == DocumentVisibility.PRIVATE:
+            self._ensure_can_modify(document, actor_id)
+
+        return version
+
+    async def get_all_versions(
+        self, document_id: uuid.UUID, actor_id: uuid.UUID
+    ) -> list[VersionORM]:
+        statement = (
+            select(VersionORM)
+            .where(VersionORM.document_id == document_id)
+            .order_by(asc(VersionORM.created_at))
+        )
+        result = await self.session.execute(statement)
+        versions = list(result.scalars().all())
+
+        document = versions[0].document
+        if document.visibility == DocumentVisibility.PRIVATE:
+            self._ensure_can_modify(document, actor_id)
+        return versions

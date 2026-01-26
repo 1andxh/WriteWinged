@@ -4,6 +4,7 @@ from src.db.main import init_db
 from src.config import config
 from src.auth.routes import auth_router
 from src.core.documents.routes import document_router
+from src.core.versions.routes import version_router
 from .middleware import register_middleware
 from .exception_handler import (
     writewinged_exception_handler,
@@ -42,3 +43,4 @@ register_middleware(app)
 
 app.include_router(auth_router, prefix=f"/api/auth", tags=["auth"])
 app.include_router(document_router, prefix=f"/api/documents", tags=["documents"])
+app.include_router(version_router, prefix=f"/api/documents", tags=["versions"])
