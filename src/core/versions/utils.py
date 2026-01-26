@@ -8,25 +8,20 @@ from src.exceptions import (
 )
 from src.core.versions.models import VersionORM
 import uuid
+from typing import TypeGuard
 
 
 def can_author_version(document: DocumentORM):
-    if not document:
-        raise DocumentNotFound()
     if document.deleted_at is not None or document.state != DocumentState.ACTIVE:
         raise DocumentNotMutable("Document state does not permit creation")
 
 
 def can_publish_version(document: DocumentORM):
-    if not document:
-        raise DocumentNotFound()
     if document.deleted_at is not None or document.state == DocumentState.ARCHIVED:
         raise DocumentNotMutable("Document is archived or deleted")
 
 
-def ensure_version_belongs(version: VersionORM | None, document_id: uuid.UUID):
-    if version is None:
-        raise VersionDoesNotExist()
+def ensure_version_belongs(version: VersionORM, document_id: uuid.UUID):
     if version.document_id != document_id:
         raise VersionMismatch()
 
