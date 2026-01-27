@@ -32,13 +32,9 @@ class VersionService:
     async def create_version(
         self, *, author_id: uuid.UUID, document_id: uuid.UUID, content: str
     ) -> VersionORM:
-
-        async with self.session.begin():
-            statement = (
-                select(DocumentORM)
-                .where(DocumentORM.id == document_id)
-                .with_for_update()
-            )
+        statement = (
+            select(DocumentORM).where(DocumentORM.id == document_id).with_for_update()
+        )
         result = await self.session.execute(statement)
         document = result.scalar_one()
 
@@ -62,55 +58,50 @@ class VersionService:
     async def publish_version(
         self, *, document_id: uuid.UUID, version_id: uuid.UUID, actor_id: uuid.UUID
     ) -> None:
-        async with self.session.begin():
-            statement = (
-                select(DocumentORM)
-                .where(DocumentORM.id == document_id)
-                .with_for_update()
-            )
-            result = await self.session.execute(statement)
-            document = result.scalar_one_or_none()
-            if document is None:
-                raise DocumentNotFound()
-            self._ensure_can_modify(document, actor_id)
+        statement = (
+            select(DocumentORM).where(DocumentORM.id == document_id).with_for_update()
+        )
+        result = await self.session.execute(statement)
+        document = result.scalar_one_or_none()
+        if document is None:
+            raise DocumentNotFound()
+        self._ensure_can_modify(document, actor_id)
 
-            can_publish_version(document)
+        can_publish_version(document)
 
-            version_to_publish = select(VersionORM).where(VersionORM.id == version_id)
-            version_result = await self.session.execute(version_to_publish)
-            version = version_result.scalar_one_or_none()
+        version_to_publish = select(VersionORM).where(VersionORM.id == version_id)
+        version_result = await self.session.execute(version_to_publish)
+        version = version_result.scalar_one_or_none()
 
-            if version is None:
-                raise VersionDoesNotExist()
-            ensure_version_belongs(version, document_id)
+        if version is None:
+            raise VersionDoesNotExist()
+        ensure_version_belongs(version, document_id)
 
-            # pointer swap
-            document.published_version_id = version.id
+        # pointer swap
+        document.published_version_id = version.id
 
-            # clear draft pointer
-            if document.draft_version_id == version.id:
-                document.draft_version_id = None
+        # clear draft pointer
+        if document.draft_version_id == version.id:
+            document.draft_version_id = None
 
     async def unpublish_version(
         self, document_id: uuid.UUID, actor_id: uuid.UUID
     ) -> None:
-        async with self.session.begin():
-            statement = (
-                select(DocumentORM)
-                .where(DocumentORM.od == document_id)
-                .with_for_update()
-            )
-            result = await self.session.execute(statement)
-            document = result.scalar_one_or_none()
 
-            if document is None:
-                raise DocumentNotFound()
-            self._ensure_can_modify(document, actor_id)
-            can_publish_version(document)
+        statement = (
+            select(DocumentORM).where(DocumentORM.od == document_id).with_for_update()
+        )
+        result = await self.session.execute(statement)
+        document = result.scalar_one_or_none()
 
-            if document.published_version_id is None:
-                return
-            document.published_version_id = None
+        if document is None:
+            raise DocumentNotFound()
+        self._ensure_can_modify(document, actor_id)
+        can_publish_version(document)
+
+        if document.published_version_id is None:
+            return
+        document.published_version_id = None
 
     async def get_version(
         self, document_id: uuid.UUID, actor_id, version_id: uuid.UUID | None = None

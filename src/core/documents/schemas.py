@@ -1,6 +1,7 @@
 from pydantic import BaseModel
 from datetime import datetime
 import uuid
+from src.core.versions.schemas import VersionRead
 
 
 class DocumentResponse(BaseModel):
@@ -26,6 +27,7 @@ class DocumentReadResponse(BaseModel):
     state: str
     created_at: datetime
     updated_at: datetime
+    versions: list[VersionRead]
 
     class Config:
         from_attributes = True

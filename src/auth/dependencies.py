@@ -71,7 +71,7 @@ token_data = Annotated[dict[str, Any], Depends(AccessTokenBearer())]
 session = Annotated[AsyncSession, Depends(get_session)]
 
 
-async def get_currrent_user(token_data: token_data, session: session):
+async def get_current_user(token_data: token_data, session: session):
     user_email = token_data["user"]["email"]
     user = await user_service.get_user_by_email(user_email, session)
     return user

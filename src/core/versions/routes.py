@@ -1,5 +1,5 @@
 from fastapi import APIRouter, status, Depends
-from ...auth.dependencies import get_currrent_user
+from ...auth.dependencies import get_current_user
 from ...db.dependency import get_session
 from sqlalchemy.ext.asyncio import AsyncSession
 import uuid
@@ -17,7 +17,7 @@ from .schemas import (
 
 version_router = APIRouter()
 # version_router = document_router
-user = Annotated[User, Depends(get_currrent_user)]
+user = Annotated[User, Depends(get_current_user)]
 version_service = Annotated[VersionService, Depends(get_version_service)]
 
 
@@ -45,7 +45,11 @@ async def create_version(
 async def get_all_versions(
     document_id: uuid.UUID, service: version_service, current_user: user
 ):
-    pass
+    versions = await service.get_all_versions(
+        document_id=document_id, actor_id=current_user.id
+    )
+
+    return versions
 
 
 @version_router.get("/{document_id}/versions{version_id}", response_model=VersionRead)

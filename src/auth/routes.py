@@ -16,7 +16,7 @@ from .schemas import (
     PasswordResetRequest,
 )
 from .service import GoogleUserService, UserService
-from .dependencies import AccessTokenBearer, RefreshTokenBearer, get_currrent_user
+from .dependencies import AccessTokenBearer, RefreshTokenBearer, get_current_user
 from fastapi.responses import JSONResponse, RedirectResponse, HTMLResponse
 from fastapi.exceptions import HTTPException
 from .utils import create_access_token, verify_password, get_tokens
@@ -199,7 +199,7 @@ async def refresh_token(token_data: dict = Depends(refresh_token_bearer)):
     raise InvalidTokenException()
 
 
-user = Annotated[dict[str, Any], Depends(get_currrent_user)]
+user = Annotated[dict[str, Any], Depends(get_current_user)]
 
 
 @auth_router.get("/me", response_model=UserResponse)

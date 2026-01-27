@@ -7,7 +7,7 @@ from .schemas import (
 )
 from .service import DocumentService, DocumentVisibility
 import uuid
-from ...auth.dependencies import get_currrent_user
+from ...auth.dependencies import get_current_user
 from ...auth.models import User
 from typing import Annotated
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -18,7 +18,7 @@ from ...exceptions import DocumentNotFound, DocumentPermissionDenied, DocumentNo
 
 document_router = APIRouter()
 document_service = Annotated[DocumentService, Depends(get_document_service)]
-user = Annotated[User, Depends(get_currrent_user)]
+user = Annotated[User, Depends(get_current_user)]
 
 
 @document_router.get("/", response_model=list[DocumentReadResponse])

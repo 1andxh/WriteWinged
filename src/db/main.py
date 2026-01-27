@@ -6,9 +6,11 @@ from sqlalchemy.ext.asyncio import (
     AsyncSession,
 )
 from typing import AsyncGenerator, Annotated
+from src.db.base import Base
 from src.config import config
 from src.auth.models import User
 from ..core.documents.models import DocumentORM
+from src.core.versions.models import VersionORM
 
 # note: import models before metadata.create_all()
 
@@ -17,17 +19,26 @@ async_engine = create_async_engine(
     echo=True,
 )
 
+Session = async_sessionmaker(
+    bind=async_engine, class_=AsyncSession, expire_on_commit=False
+)
+
 
 async def init_db() -> None:
     """create db connection"""
     async with async_engine.begin() as conn:
-        await conn.run_sync(SQLModel.metadata.create_all)
+        await conn.run_sync(Base.metadata.create_all)
 
 
 # todo: get_session
 async def get_session() -> AsyncGenerator[AsyncSession, None]:
-    Session = async_sessionmaker(
-        bind=async_engine, class_=AsyncSession, expire_on_commit=False
-    )
+
     async with Session() as session:
-        yield session
+        try:
+            yield session
+            await session.commit()
+        except Exception:
+            await session.rollback()
+            raise
+        finally:
+            await session.close()

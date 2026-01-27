@@ -12,6 +12,8 @@ from typing import TypeGuard
 
 
 def can_author_version(document: DocumentORM):
+    # if document is None:
+    #     raise DocumentNotFound()
     if document.deleted_at is not None or document.state != DocumentState.ACTIVE:
         raise DocumentNotMutable("Document state does not permit creation")
 
