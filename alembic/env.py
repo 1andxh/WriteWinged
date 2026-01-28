@@ -11,6 +11,7 @@ from src.db.base import Base
 from src.core.documents.models import DocumentORM
 from src.auth.models import User
 from src.core.versions.models import VersionORM
+from src.core.contributions import ContributionORM
 from src.config import config
 
 # from src.core.documents.models import DocumentORM

@@ -11,6 +11,7 @@ from src.config import config
 from src.auth.models import User
 from ..core.documents.models import DocumentORM
 from src.core.versions.models import VersionORM
+from src.core.contributions.models import ContributionORM
 
 # note: import models before metadata.create_all()
 
