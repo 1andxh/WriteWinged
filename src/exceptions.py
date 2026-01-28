@@ -165,3 +165,20 @@ class VersionMismatch(DocumentError):
     def __init__(self, message: str = "Version does not belong to document"):
         self.message = message
         Exception.__init__(self, self.message)
+
+
+# CONTRIBUTION EXCEPTIONS
+class InvalidContributionTarget(DocumentError):
+    """Raised when document owner attempts contribution"""
+
+    def __init__(self, message: str = "Owner cannot be target contributor"):
+        self.message = message
+        Exception.__init__(self, self.message)
+
+
+class ContributionAlreadyExists(DocumentError):
+    """Raised when a contribution record already exists"""
+
+    def __init__(self, message: str = "Contibution already exists"):
+        self.message = message
+        Exception.__init__(self, self.message)

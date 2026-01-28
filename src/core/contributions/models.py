@@ -39,6 +39,8 @@ class ContributionORM(Base):
     )
     user: Mapped["User"] = relationship(lazy="selectin")
 
-    __table_args__ = UniqueConstraint(
-        "document_id", "user_id", name="uq_contribution_document_user"
+    __table_args__ = (
+        UniqueConstraint(
+            "document_id", "user_id", name="uq_contribution_document_user"
+        ),
     )
