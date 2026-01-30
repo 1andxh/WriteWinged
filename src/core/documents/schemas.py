@@ -2,6 +2,7 @@ from pydantic import BaseModel
 from datetime import datetime
 import uuid
 from src.core.versions.schemas import VersionRead
+from src.core.contributions.schemas import ListContributor
 
 
 class DocumentResponse(BaseModel):
@@ -28,6 +29,7 @@ class DocumentReadResponse(BaseModel):
     created_at: datetime
     updated_at: datetime
     versions: list[VersionRead]
+    contributors: list[ListContributor]
 
     class Config:
         from_attributes = True

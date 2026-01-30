@@ -5,7 +5,7 @@ import uuid
 from typing import Annotated
 from .services import ContributionService
 from .dependency import get_document_service
-from .schemas import AddContributorModel, Contributors
+from .schemas import AddContributorModel, ListContributor
 from src.exceptions import (
     DocumentPermissionDenied,
     DocumentNotFound,
@@ -23,7 +23,7 @@ contribution_service = Annotated[ContributionService, Depends(get_document_servi
 
 @contributions_router.get(
     "/{document_id}/contributors",
-    response_model=list[Contributors],
+    response_model=list[ListContributor],
 )
 async def get_contributors(
     document_id: uuid.UUID, current_user: user, service: contribution_service

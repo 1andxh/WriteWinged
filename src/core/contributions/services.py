@@ -112,7 +112,7 @@ class ContributionService:
         self,
         document_id: uuid.UUID,
         actor_id: uuid.UUID,
-    ):
+    ) -> list[ContributionORM]:
         statement = select(DocumentORM).where(
             DocumentORM.id == document_id, DocumentORM.deleted_at.is_(None)
         )
@@ -136,12 +136,13 @@ class ContributionService:
             if not is_contributor:
                 raise DocumentPermissionDenied()
 
-        contributors = await self.session.execute(
+        statement = await self.session.execute(
             select(ContributionORM)
             .where(ContributionORM.document_id == document_id)
             .order_by(desc(ContributionORM.created_at))
         )
-        return contributors.scalars().all()
+        contributors = statement.scalars().all()
+        return list(contributors)
 
     # async def accept_contribution(self):
     #     pass

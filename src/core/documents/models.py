@@ -25,6 +25,7 @@ from src.db.base import Base
 if TYPE_CHECKING:
     from src.core.versions import VersionORM
     from src.auth.models import User
+    from src.core.contributions import ContributionORM
 
 
 class DocumentVisibility(str, Enum):
@@ -93,7 +94,13 @@ class DocumentORM(Base):
     # relations
     versions: Mapped[list["VersionORM"]] = relationship(
         back_populates="document",
-        foreign_keys="[VersionORM.document_id]",
+        foreign_keys="VersionORM.document_id",
+        cascade="all, delete-orphan",
+        lazy="selectin",
+    )
+    contributions: Mapped[list["ContributionORM"]] = relationship(
+        back_populates="document",
+        foreign_keys="ContributionORM.document_id",
         cascade="all, delete-orphan",
         lazy="selectin",
     )

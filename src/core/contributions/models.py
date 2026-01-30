@@ -16,7 +16,7 @@ class ContributionORM(Base):
     )
     document_id: Mapped[uuid.UUID] = mapped_column(
         pg.UUID(as_uuid=True),
-        ForeignKey("documents.id", ondelete="CASCADE"),
+        ForeignKey("documents.id", ondelete="RESTRICT"),
         nullable=False,
         index=True,
     )
@@ -34,10 +34,8 @@ class ContributionORM(Base):
     )
 
     # relationships
-    document: Mapped["DocumentORM"] = relationship(
-        back_populates="contributions", lazy="selectin"
-    )
-    user: Mapped["User"] = relationship(lazy="selectin")
+    document: Mapped["DocumentORM"] = relationship(back_populates="contributions")
+    user: Mapped["User"] = relationship(lazy="joined")
 
     __table_args__ = (
         UniqueConstraint(

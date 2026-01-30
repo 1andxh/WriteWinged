@@ -7,6 +7,6 @@ class AddContributorModel(BaseModel):
     contributor_id: uuid.UUID
 
 
-class Contributors(BaseModel):
+class ListContributor(BaseModel):
     contributor_id: uuid.UUID
     revoked_at: datetime
