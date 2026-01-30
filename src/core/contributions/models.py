@@ -26,7 +26,7 @@ class ContributionORM(Base):
         nullable=False,
         index=True,
     )
-    created_At: Mapped[datetime] = mapped_column(
+    created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), insert_default=func.now(), nullable=False
     )
     revoked_at: Mapped[datetime | None] = mapped_column(

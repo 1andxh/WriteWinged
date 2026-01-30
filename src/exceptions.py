@@ -182,3 +182,19 @@ class ContributionAlreadyExists(DocumentError):
     def __init__(self, message: str = "Contibution already exists"):
         self.message = message
         Exception.__init__(self, self.message)
+
+
+class ContributionAlreadyRevoked(DocumentError):
+    """Raised when a contribution request is revoked"""
+
+    def __init__(self, message: str = "Contibution already revoked"):
+        self.message = message
+        Exception.__init__(self, self.message)
+
+
+class ContributionNotFound(DocumentError):
+    """Raised when contribution is not found"""
+
+    def __init__(self, message: str = "Contibution not found"):
+        self.message = message
+        Exception.__init__(self, self.message)
