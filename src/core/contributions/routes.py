@@ -93,3 +93,4 @@ async def revoke_contributor(
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT, detail="Contribution already exists"
         )
+    return
