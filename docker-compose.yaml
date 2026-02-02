@@ -1,0 +1,31 @@
+services:
+  api:
+    # Build: Tells Docker where to find the recipe and how to cook it
+    build:
+      context: .
+    
+    # container_name: No more random 'distracted_hopper' names
+    container_name: writewinged_api_prod
+
+    # restart: The 'zombie' policy
+    restart: unless-stopped
+
+    # env_file: Swapping hardcoded values for a clean .env file
+    env_file:
+      - .env
+
+    # ports: Mapping the container's soul to the host's body
+    ports:
+      - "8000:8000"
+
+    # networks: Creating a private club for your services
+    networks:
+      - api_network
+
+    # Moving the logic out of the Dockerfile and into here
+    # command: uvicorn src:app --host 0.0.0.0 --port 8000
+  db:
+    
+networks:
+  api_network:
+    driver: bridge
