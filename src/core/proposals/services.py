@@ -35,6 +35,9 @@ class ProposalService:
             raise DocumentNotFound()
         return document
 
+    async def _get_proposal(self, proposal_id: uuid.UUID):
+        pass
+
     async def _is_active_contributor(
         self, document_id: uuid.UUID, user_id: uuid.UUID
     ) -> bool:
@@ -99,3 +102,59 @@ class ProposalService:
             raise DocumentPermissionDenied()
 
         proposal.content = content
+
+    async def withdraw_proposal(
+        self, proposal_id: uuid.UUID, actor_id: uuid.UUID
+    ) -> None:
+        stmt = await self.session.execute(
+            select(ProposalORM).where(ProposalORM.id == proposal_id)
+        )
+        proposal = stmt.scalar_one_or_none()
+        if proposal is None:
+            raise ProposalNotFound()
+        if proposal.state != ProposalState.OPEN:
+            raise InvalidProposalState("Only open proposals can be withdrawn")
+        if proposal.author_id != actor_id:
+            raise DocumentPermissionDenied()
+
+        proposal.state = ProposalState.WITHDRAWN
+
+    async def accept_propopsal(
+        self, proposal_id: uuid.UUID, actor_id: uuid.UUID
+    ) -> None:
+        stmt = await self.session.execute(
+            select(ProposalORM)
+            .join(DocumentORM, ProposalORM.document_id == DocumentORM.id)
+            .where(ProposalORM.id == proposal_id)
+        )
+        proposal = stmt.scalar_one_or_none()
+        if proposal is None:
+            raise ProposalNotFound()
+
+        document = await self._get_document(document_id=proposal.document_id)
+
+        if document.owner_id != actor_id:
+            raise DocumentPermissionDenied()
+        if proposal.state != ProposalState.OPEN:
+            raise InvalidProposalState("Only open proposals can be accepted")
+
+        proposal.state = ProposalState.ACCEPTED
+        proposal.decided_at = now
+
+    async def reject_proposal(
+        self, proposal_id: uuid.UUID, actor_id: uuid.UUID, reason: str | None = None
+    ) -> None:
+        result = await self.session.execute(
+            select(ProposalORM).where(ProposalORM.id == proposal_id)
+        )
+        proposal = result.scalar_one_or_none()
+        if proposal is None:
+            raise ProposalNotFound()
+        document = await self._get_document(document_id=proposal.document_id)
+        if document.owner_id != actor_id:
+            raise DocumentPermissionDenied()
+        if proposal.state != ProposalState.OPEN:
+            raise InvalidProposalState("Only open proposals can be rejected")
+
+        proposal.state = ProposalState.REJECTED
+        proposal.decided_at = now
