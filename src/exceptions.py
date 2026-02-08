@@ -198,3 +198,20 @@ class ContributionNotFound(DocumentError):
     def __init__(self, message: str = "Contibution not found"):
         self.message = message
         Exception.__init__(self, self.message)
+
+
+# PROPOSAL EXCEPTION
+class ProposalNotFound(DocumentError):
+    """Rasied when proposal is not found"""
+
+    def __init__(self, message: str = "Proposal not found"):
+        self.message = message
+        Exception.__init__(self, self.message)
+
+
+class InvalidProposalState(DocumentError):
+    """Rasied when proposal is not found"""
+
+    def __init__(self, message: str = "Proposal cannot be altered in this state"):
+        self.message = message
+        Exception.__init__(self, self.message)
