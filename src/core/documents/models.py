@@ -26,6 +26,7 @@ if TYPE_CHECKING:
     from src.core.versions import VersionORM
     from src.auth.models import User
     from src.core.contributions import ContributionORM
+    from src.core.proposals import ProposalORM
 
 
 class DocumentVisibility(str, Enum):
@@ -101,6 +102,12 @@ class DocumentORM(Base):
     contributions: Mapped[list["ContributionORM"]] = relationship(
         back_populates="document",
         foreign_keys="ContributionORM.document_id",
+        cascade="all, delete-orphan",
+        lazy="selectin",
+    )
+    proposals: Mapped[list["ProposalORM"]] = relationship(
+        back_populates="document",
+        foreign_keys="ProposalORM.document_id",
         cascade="all, delete-orphan",
         lazy="selectin",
     )

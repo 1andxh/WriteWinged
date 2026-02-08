@@ -4,10 +4,11 @@ from ...db.dependency import session
 from ...auth.models import User
 from ..versions import VersionORM
 import uuid
-
-# from ...exceptions import DocumentNotAcceptingSuggestionsError, ResourceNotFoundError
+from src.core.documents import DocumentORM
+from ...exceptions import DocumentNotFound, ContributionNotFound
 from datetime import datetime as dt, timezone
 from sqlalchemy import select
+from src.core.contributions import ContributionORM
 
 now = dt.now(timezone.utc)
 
@@ -16,53 +17,30 @@ class ProposalService:
     def __init__(self, session: session) -> None:
         self.session = session
 
-    # async def submit_suggestion(
-    #     self,
-    #     *,
-    #     session: session,
-    #     base_version_id: uuid.UUID,
-    #     author_id: uuid.UUID,
-    #     content: str
-    # ) -> Suggestion:
-    #     base_version = await session.get(Version, base_version_id)  # type: ignore
-    #     if base_version is None:
-    #         raise ResourceNotFoundError("Base version not found")
+    async def _get_document(self, document_id: uuid.UUID) -> DocumentORM:
+        result = await self.session.execute(
+            select(DocumentORM).where(DocumentORM.id == document_id)
+        )
+        document = result.scalar_one_or_none()
+        if document is None:
+            raise DocumentNotFound()
+        return document
 
-    #     document = base_version.document
-    #     if document is None:
-    #         raise ResourceNotFoundError("cannot contribute to non existent document")
-    #     statement = select(Collaborator).where(
-    #         Collaborator.document_id == document.id, Collaborator.user_id == author_id
-    #     )
-    #     result = await session.execute(statement)
-    #     collaboration = result.scalar_one_or_none()
+    async def _is_active_contributor(
+        self, document_id: uuid.UUID, user_id: uuid.UUID
+    ) -> bool:
+        result = await self.session.execute(
+            select(ContributionORM).where(
+                ContributionORM.document_id == document_id,
+                ContributionORM.user_id == user_id,
+                ContributionORM.revoked_at.is_(None),
+            )
+        )
+        if result is None:
+            raise ContributionNotFound()
+        return result.scalar_one_or_none()
 
-    #     if document.is_archived or document.is_locked:
-    #         raise DocumentNotAcceptingSuggestionsError()
-
-    #     if author.role not in ["editor", "collaorator", "admin"]:
-    #         raise NoPermissionError("Not allowed to submit suggestions")
-
-    #     content = content.strip()
-    #     if not content:
-    #         raise ValueError("Suggestioin content cannot be empty")
-
-    #     suggestion = Suggestion(
-    #         document_id=document.id,
-    #         base_version_id=base_version.id,
-    #         author_id=author.id,
-    #         content=content,
-    #         status=SuggestionStatus.PENDING,
-    #         created_at=now(),
-    #     )
-
-    #     session.add(suggestion)
-    #     await session.commit()
-    #     await session.refresh(suggestion)
-
-    #     return suggestion
-
-    # async def accept_suggestion(self): ...
-
-    # async def reject_submission(self): ...
-    pass
+    async def create_proposla(
+        self,
+    ):
+        pass

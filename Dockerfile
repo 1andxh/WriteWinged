@@ -1,6 +1,8 @@
-FROM python:3
+FROM python:3.12-slim
 
 WORKDIR /usr/src/app
+
+RUN echo "precedence ::ffff:0:0/96  100" >> /etc/gai.conf
 
 COPY requirements.txt ./
 
