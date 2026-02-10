@@ -157,14 +157,12 @@ class VersionDoesNotExist(DocumentError):
     """Raised when version does not exists or is not found"""
 
     def __init__(self, message: str = "Version does not exist"):
-        self.message = message
-        Exception.__init__(self, self.message)
+        super().__init__(message, status_code=status.HTTP_404_NOT_FOUND)
 
 
 class VersionMismatch(DocumentError):
     def __init__(self, message: str = "Version does not belong to document"):
-        self.message = message
-        Exception.__init__(self, self.message)
+        super().__init__(message, status_code=status.HTTP_409_CONFLICT)
 
 
 # CONTRIBUTION EXCEPTIONS
@@ -213,5 +211,13 @@ class InvalidProposalState(DocumentError):
     """Rasied when proposal is not found"""
 
     def __init__(self, message: str = "Proposal cannot be altered in this state"):
+        self.message = message
+        Exception.__init__(self, self.message)
+
+
+class ProposalAlreadyMerged(DocumentError):
+    """Rasied when proposal is already merged"""
+
+    def __init__(self, message: str = "Proposal already merged"):
         self.message = message
         Exception.__init__(self, self.message)
