@@ -52,7 +52,9 @@ async def get_all_versions(
     return versions
 
 
-@version_router.get("/{document_id}/versions{version_id}", response_model=VersionRead)
+@version_router.get(
+    "/{document_id}/versions/{version_id}", response_model=VersionRead
+)
 async def get_version(
     document_id: uuid.UUID,
     version_id: uuid.UUID,

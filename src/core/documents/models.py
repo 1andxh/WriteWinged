@@ -119,6 +119,11 @@ class DocumentORM(Base):
     )
     owner: Mapped["User"] = relationship(back_populates="documents")
 
+    @property
+    def contributors(self) -> list["ContributionORM"]:
+
+        return self.contributions
+
     __table_args__ = (
         Index(
             "uq_documents_owner_title_active",

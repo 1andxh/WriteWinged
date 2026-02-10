@@ -12,9 +12,10 @@ from ...exceptions import (
     DocumentPermissionDenied,
     ProposalNotFound,
     InvalidProposalState,
+    ProposalAlreadyMerged,
 )
 from datetime import datetime as dt, timezone
-from sqlalchemy import select
+from sqlalchemy import select, desc
 from src.core.contributions import ContributionORM
 from src.core.documents.models import DocumentState
 from src.core.proposals.models import ProposalORM, ProposalState
@@ -158,3 +159,89 @@ class ProposalService:
 
         proposal.state = ProposalState.REJECTED
         proposal.decided_at = now
+
+    async def get_proposal(
+        self, proposal_id: uuid.UUID, actor_id: uuid.UUID
+    ) -> ProposalORM:
+        result = await self.session.execute(
+            select(ProposalORM).where(ProposalORM.id == proposal_id)
+        )
+        proposal = result.scalar_one_or_none()
+        if proposal is None:
+            raise ProposalNotFound()
+        document = await self._get_document(document_id=proposal.document_id)
+        if document.state == DocumentState.ARCHIVED:
+            raise InvalidDocumentState("Cannot read archived docs")
+        is_owner = document.owner_id == actor_id
+        is_author = proposal.author_id == actor_id
+        is_contributor = await self._is_active_contributor(
+            document_id=proposal.document_id, user_id=actor_id
+        )
+        if not (is_owner or is_author or is_contributor):
+            raise DocumentPermissionDenied()
+        return proposal
+
+    async def list_proposals(self, document_id: uuid.UUID, actor_id: uuid.UUID):
+        document = await self._get_document(document_id=document_id)
+        if document.state == DocumentState.ARCHIVED:
+            raise InvalidDocumentState("Cannot read archived docs")
+        is_owner = document.owner_id == actor_id
+        is_contributor = await self._is_active_contributor(
+            document_id=document_id, user_id=actor_id
+        )
+        if not (is_owner or is_contributor):
+            raise DocumentPermissionDenied()
+
+        proposals = await self.session.execute(
+            select(ProposalORM)
+            .where(ProposalORM.document_id == document_id)
+            .order_by(desc(ProposalORM.created_at))
+        )
+        return proposals.scalars().all()
+
+    async def merge_proposal(
+        self, proposal_id: uuid.UUID, actor_id: uuid.UUID
+    ) -> VersionORM:
+        # lock porposla
+        result = await self.session.execute(
+            select(ProposalORM)
+            .where(ProposalORM.id == proposal_id, ProposalORM.merged_at.is_(None))
+            .with_for_update()
+        )
+        proposal = result.scalar_one_or_none()
+
+        if proposal is None:
+            raise ProposalNotFound()
+        if proposal.state != ProposalState.ACCEPTED:
+            raise InvalidProposalState("Cannot merge proposal")
+        # if proposal.merged_at is not None:
+        #     raise ProposalAlreadyMerged()
+
+        # lock the document
+        result = await self.session.execute(
+            select(DocumentORM)
+            .where(DocumentORM.id == proposal.document_id)
+            .with_for_update()
+        )
+        document = result.scalar_one_or_none()
+        if document is None:
+            raise DocumentNotFound()
+        if document.owner_id != actor_id:
+            raise DocumentPermissionDenied()
+        if document.state in (DocumentState.ARCHIVED or DocumentState.LOCKED):
+            raise InvalidDocumentState("Cannot merge document with current state")
+
+        # create the new merged version
+        merged_version = VersionORM(
+            document_id=document.id,
+            author_id=actor_id,
+            content=proposal.content,
+        )
+        self.session.add(merged_version)
+        await self.session.flush()
+
+        # mark and switch pointer
+        document.draft_version_id = merged_version.id
+        proposal.merged_at = now
+
+        return merged_version

@@ -43,6 +43,9 @@ class ProposalORM(Base):
     decided_at: Mapped[datetime | None] = mapped_column(
         DateTime(timezone=True), nullable=True
     )
+    merged_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
 
     # relationship
     document: Mapped["DocumentORM"] = relationship(

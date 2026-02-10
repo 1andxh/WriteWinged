@@ -29,7 +29,7 @@ class DocumentReadResponse(BaseModel):
     created_at: datetime
     updated_at: datetime
     versions: list[VersionRead]
-    contributors: list[ListContributor]
+    contributors: list[ListContributor] = []
 
     class Config:
         from_attributes = True

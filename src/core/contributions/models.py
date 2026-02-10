@@ -37,6 +37,11 @@ class ContributionORM(Base):
     document: Mapped["DocumentORM"] = relationship(back_populates="contributions")
     user: Mapped["User"] = relationship(lazy="joined")
 
+    @property
+    def contributor_id(self) -> uuid.UUID:
+
+        return self.user_id
+
     __table_args__ = (
         UniqueConstraint(
             "document_id", "user_id", name="uq_contribution_document_user"
