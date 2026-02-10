@@ -6,6 +6,7 @@ from src.auth.routes import auth_router
 from src.core.documents.routes import document_router
 from src.core.versions.routes import version_router
 from src.core.contributions.routes import contributions_router
+from src.core.proposals.routes import proposal_router
 from .middleware import register_middleware
 from .exception_handler import (
     writewinged_exception_handler,
@@ -48,3 +49,4 @@ app.include_router(version_router, prefix=f"/api/documents", tags=["versions"])
 app.include_router(
     contributions_router, prefix=f"/api/documents", tags=["contributions"]
 )
+app.include_router(proposal_router, prefix=f"/api/documents", tags=["proposals"])

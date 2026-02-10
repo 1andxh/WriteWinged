@@ -2,6 +2,7 @@ from pydantic import BaseModel, Field
 from uuid import UUID
 from src.core.proposals.models import ProposalState
 from datetime import datetime
+from typing import Literal
 
 
 class ProposalCreate(BaseModel):
@@ -23,3 +24,7 @@ class ProposalResponse(BaseModel):
 
 class ProposalList(ProposalResponse):
     pass
+
+
+class UpdateProposalState(BaseModel):
+    state: Literal[ProposalState.ACCEPTED, ProposalState.REJECTED]
