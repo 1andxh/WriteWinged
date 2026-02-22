@@ -9,4 +9,4 @@ class AddContributorModel(BaseModel):
 
 class ListContributor(BaseModel):
     contributor_id: uuid.UUID
-    revoked_at: datetime
+    revoked_at: datetime | None
