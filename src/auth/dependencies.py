@@ -8,10 +8,12 @@ from src.db.main import get_session
 from fastapi.exceptions import HTTPException
 from sqlmodel.ext.asyncio.session import AsyncSession
 from .service import UserService
+from src.db.redis import token_in_blocklist
 from ..exceptions import (
     AccessTokenRequiredException,
     RefreshTokenRequiredException,
     InvalidTokenException,
+    RevokedTokenException,
 )
 
 user_service = UserService()
@@ -29,8 +31,10 @@ class TokenBearer(HTTPBearer):
             request
         )
 
-        if credentials is not None:
-            token = credentials.credentials
+        if credentials is None:
+            raise InvalidTokenException()
+
+        token = credentials.credentials
 
         token_data = decode_token(token)
 
@@ -40,6 +44,9 @@ class TokenBearer(HTTPBearer):
             #     detail="Invalid or expired token",
             # )
             raise InvalidTokenException()
+        jti = token_data.get("jti")
+        if jti and await token_in_blocklist(jti):
+            raise RevokedTokenException()
         self.verify_token_data(token_data)
         return token_data
 
