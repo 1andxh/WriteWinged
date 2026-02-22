@@ -13,9 +13,6 @@ from datetime import datetime, timezone
 from sqlalchemy.exc import IntegrityError
 import uuid
 
-now = datetime.now(timezone.utc)
-
-
 class DocumentService:
 
     def __init__(self, session: AsyncSession) -> None:
@@ -68,6 +65,7 @@ class DocumentService:
     ) -> list[DocumentORM]:
         statement = select(DocumentORM).where(
             DocumentORM.visibility == DocumentVisibility.PUBLIC,
+            DocumentORM.state.in_([DocumentState.ACTIVE, DocumentState.LOCKED]),
             DocumentORM.deleted_at.is_(None),
         )
         if search_query:
@@ -134,7 +132,6 @@ class DocumentService:
             await self.session.rollback()
             raise DocumentTitleConflict()
 
-        await self.session.commit()
         await self.session.refresh(document)
         return document
 
@@ -155,7 +152,7 @@ class DocumentService:
         document.title = clean_title
 
         try:
-            await self.session.commit()
+            await self.session.flush()
             await self.session.refresh(document)
         except IntegrityError:
             await self.session.rollback()
@@ -178,7 +175,7 @@ class DocumentService:
             raise DocumentNotMutable("Document already locked")
 
         document.state = DocumentState.LOCKED
-        await self.session.commit()
+        await self.session.flush()
         await self.session.refresh(document)
 
         return document
@@ -194,7 +191,7 @@ class DocumentService:
         if document.state == DocumentState.ACTIVE:
             return document
         document.state = DocumentState.ACTIVE
-        await self.session.commit()
+        await self.session.flush()
         await self.session.refresh(document)
         return document
 
@@ -207,7 +204,7 @@ class DocumentService:
         if document.state == DocumentState.ARCHIVED:
             raise DocumentNotMutable("Document is already archived")
         document.state = DocumentState.ARCHIVED
-        await self.session.commit()
+        await self.session.flush()
         await self.session.refresh(document)
         return document
 
@@ -221,7 +218,7 @@ class DocumentService:
             raise DocumentPermissionDenied()
 
         document.state = DocumentState.ACTIVE
-        await self.session.commit()
+        await self.session.flush()
         await self.session.refresh(document)
 
         return document
@@ -235,4 +232,4 @@ class DocumentService:
             raise DocumentPermissionDenied()
 
         document.deleted_at = datetime.now(timezone.utc)
-        await self.session.commit()
+        await self.session.flush()
