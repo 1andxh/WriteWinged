@@ -19,7 +19,7 @@ from sqlalchemy import text
 
 async_engine = create_async_engine(
     url=config.DATABASE_URL,
-    echo=True,
+    echo=config.SQL_ECHO,
     # connect_args={"statement_cache_size": 0},  # supabase to break prepared statements
 )
 
@@ -41,7 +41,6 @@ async def init_db() -> None:
 #         await conn.execute(text("SELECT 1"))
 
 
-# todo: get_session
 async def get_session() -> AsyncGenerator[AsyncSession, None]:
 
     async with Session() as session:

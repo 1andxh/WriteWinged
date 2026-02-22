@@ -144,3 +144,5 @@ venv.bak/
 # .md
 AUDIT_ENDPOINT_TESTS.md
 DOCKER_POSTGRES_CONNECTIVITY_SUMMARY.md
+review.md
+.vscode

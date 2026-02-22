@@ -11,6 +11,7 @@ class CustomBaseSettings(BaseSettings):
 
 class Config(CustomBaseSettings):
     DATABASE_URL: str
+    SQL_ECHO: bool = False
     JWT_SECRET: str
     JWT_ALGORITHM: str
     API_VERSION: str
