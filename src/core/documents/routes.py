@@ -115,7 +115,7 @@ async def delete_document(
 
 @document_router.post("/{document_id}/lock", response_model=DocumentResponse)
 async def lock_document(
-    self, document_id: uuid.UUID, service: document_service, user: user
+    document_id: uuid.UUID, service: document_service, user: user
 ):
     return await service.lock_document(document_id=document_id, actor_id=user.id)
 
