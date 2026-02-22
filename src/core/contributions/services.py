@@ -20,9 +20,6 @@ from .models import ContributionORM
 from datetime import datetime, timezone
 from typing import Annotated
 
-now = datetime.now(timezone.utc)
-
-
 # nts: borrowing another class? just add to __init__ and create an instance
 
 
@@ -31,9 +28,8 @@ class ContributionService:
         self.session = session
         self.doc_service = DocumentService(session)
 
-    def _is_owner(self, actor_id: uuid.UUID, document: DocumentORM):
-        if document.id != actor_id:
-            raise DocumentPermissionDenied()
+    def _is_owner(self, actor_id: uuid.UUID, document: DocumentORM) -> bool:
+        return document.owner_id == actor_id
 
     async def add_contributor(
         self, *, document_id: uuid.UUID, contributor_id: uuid.UUID, actor_id: uuid.UUID
@@ -47,7 +43,8 @@ class ContributionService:
         if document is None:
             raise DocumentNotFound()
 
-        self._is_owner(actor_id=actor_id, document=document)
+        if not self._is_owner(actor_id=actor_id, document=document):
+            raise DocumentPermissionDenied()
         if contributor_id == document.owner_id:
             raise InvalidContributionTarget()
 
@@ -63,7 +60,7 @@ class ContributionService:
         contribution = ContributionORM(
             document_id=document.id,
             user_id=contributor_id,
-            created_at=now,
+            created_at=datetime.now(timezone.utc),
         )
         self.session.add(contribution)
         await self.session.flush()
@@ -87,7 +84,8 @@ class ContributionService:
 
         if document is None:
             raise DocumentNotFound()
-        self._is_owner(actor_id=actor_id, document=document)
+        if not self._is_owner(actor_id=actor_id, document=document):
+            raise DocumentPermissionDenied()
 
         statement = select(ContributionORM).where(
             ContributionORM.document_id == document_id,
@@ -104,7 +102,7 @@ class ContributionService:
         if contribution.revoked_at is not None:
             raise ContributionAlreadyRevoked()
 
-        contribution.revoked_at = now
+        contribution.revoked_at = datetime.now(timezone.utc)
 
         await self.session.flush()
 
