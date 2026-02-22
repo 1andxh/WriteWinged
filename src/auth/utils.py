@@ -12,13 +12,12 @@ from typing import Annotated
 
 
 from authlib.integrations.starlette_client import OAuth
-from ..config import config
 from starlette.config import Config
 
 REFRESH_TOKEN_EXPIRY = 2
 GOOGLE_CLIENT_ID = config.GOOGLE_CLIENT_ID
 GOOGLE_CLIENT_SECRET = config.GOOGLE_CLIENT_SECRET
-GOOGLE_REDIRECT_URI = "http://127.0.0.1:8000/auth/callback/google"
+GOOGLE_REDIRECT_URI = config.GOOGLE_REDIRECT_URI
 
 config_data = {
     "GOOGLE_CLIENT_ID": GOOGLE_CLIENT_ID,
@@ -45,8 +44,6 @@ jwt_secret_key = config.JWT_SECRET
 jwt_algorithm = config.JWT_ALGORITHM
 ACCESS_TOKEN_EXPIRY = 3600
 
-now = datetime.now(timezone.utc)
-
 
 def hash_password(password: str) -> str:
     digest = hashlib.sha256(password.encode("utf-8")).digest()
@@ -64,6 +61,7 @@ def create_access_token(
     expiry: timedelta = timedelta(seconds=ACCESS_TOKEN_EXPIRY),
     refresh: bool = False,
 ):
+    now = datetime.now(timezone.utc)
     payload = {}
 
     payload["user"] = data
