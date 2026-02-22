@@ -126,6 +126,7 @@ async def login(login: UserLogin, session: session):
         #     status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid Credentials"
         # )
         raise InvalidCredentialsException()
+    raise InvalidCredentialsException()
 
 
 @auth_router.post("/signup", status_code=status.HTTP_201_CREATED)
@@ -186,7 +187,8 @@ async def verify_user(token: str, session: session):
 @auth_router.post("/logout", status_code=status.HTTP_200_OK)
 async def revoke_token(token_data: dict = Depends(access_token_bearer)):
     jti = token_data["jti"]
-    await add_token_to_blocklist(jti)
+    token_expiry = int(token_data["exp"] - datetime.now().timestamp())
+    await add_token_to_blocklist(jti, expiry=token_expiry)
     return {"message": "Logged out successfully"}
 
 
@@ -217,7 +219,7 @@ async def request_password_reset(data: PasswordResetRequest, bg_task: Background
     )
     safe_token = quote(token, safe="")
 
-    link = f"https://{config.DOMAIN}/api/auth/request-password-reset?token={safe_token}"
+    link = f"https://{config.DOMAIN}/api/auth/reset-password?token={safe_token}"
     template = templates.get_template("password_reset.html")
 
     html_content = template.render({"link": link})
