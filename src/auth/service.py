@@ -24,14 +24,14 @@ class UserService:
         new_user.password_hash = hash_password(user_data["password_hash"])
         new_user.role = UserRole.USER
         session.add(new_user)
-        await session.commit()
+        await session.flush()
         return new_user
 
     async def update_user(self, user: User, user_dict: dict, session: AsyncSession):
         for k, v in user_dict.items():
             setattr(user, k, v)
 
-        await session.commit()
+        await session.flush()
         return user
 
 
@@ -48,7 +48,7 @@ class GoogleUserService:
 
         if existing_user:
             existing_user.google_sub = google_sub
-            await session.commit()
+            await session.flush()
             await session.refresh(existing_user)
             return existing_user
 
@@ -63,7 +63,7 @@ class GoogleUserService:
         new_user.role = UserRole.USER
 
         session.add(new_user)
-        await session.commit()
+        await session.flush()
         await session.refresh(new_user)
         return new_user
 
