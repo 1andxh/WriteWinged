@@ -1,27 +1,19 @@
-from fastapi.exceptions import HTTPException
-from fastapi import status
 from ...db.dependency import session
-from ...auth.models import User
 from ..versions import VersionORM
 import uuid
 from src.core.documents import DocumentORM
 from ...exceptions import (
     DocumentNotFound,
-    ContributionNotFound,
     InvalidDocumentState,
     DocumentPermissionDenied,
     ProposalNotFound,
     InvalidProposalState,
-    ProposalAlreadyMerged,
 )
 from datetime import datetime as dt, timezone
 from sqlalchemy import select, desc
 from src.core.contributions import ContributionORM
 from src.core.documents.models import DocumentState
 from src.core.proposals.models import ProposalORM, ProposalState
-
-now = dt.now(timezone.utc)
-
 
 class ProposalService:
     def __init__(self, session: session) -> None:
@@ -37,7 +29,13 @@ class ProposalService:
         return document
 
     async def _get_proposal(self, proposal_id: uuid.UUID):
-        pass
+        result = await self.session.execute(
+            select(ProposalORM).where(ProposalORM.id == proposal_id)
+        )
+        proposal = result.scalar_one_or_none()
+        if proposal is None:
+            raise ProposalNotFound()
+        return proposal
 
     async def _is_active_contributor(
         self, document_id: uuid.UUID, user_id: uuid.UUID
@@ -49,9 +47,8 @@ class ProposalService:
                 ContributionORM.revoked_at.is_(None),
             )
         )
-        if result is None:
-            raise ContributionNotFound()
-        return result.scalar_one_or_none()
+        contribution = result.scalar_one_or_none()
+        return contribution is not None
 
     async def create_proposal(
         self,
@@ -120,7 +117,7 @@ class ProposalService:
 
         proposal.state = ProposalState.WITHDRAWN
 
-    async def accept_propopsal(
+    async def accept_proposal(
         self, proposal_id: uuid.UUID, actor_id: uuid.UUID
     ) -> None:
         stmt = await self.session.execute(
@@ -140,7 +137,7 @@ class ProposalService:
             raise InvalidProposalState("Only open proposals can be accepted")
 
         proposal.state = ProposalState.ACCEPTED
-        proposal.decided_at = now
+        proposal.decided_at = dt.now(timezone.utc)
 
     async def reject_proposal(
         self, proposal_id: uuid.UUID, actor_id: uuid.UUID, reason: str | None = None
@@ -158,7 +155,7 @@ class ProposalService:
             raise InvalidProposalState("Only open proposals can be rejected")
 
         proposal.state = ProposalState.REJECTED
-        proposal.decided_at = now
+        proposal.decided_at = dt.now(timezone.utc)
 
     async def get_proposal(
         self, proposal_id: uuid.UUID, actor_id: uuid.UUID
@@ -228,7 +225,7 @@ class ProposalService:
             raise DocumentNotFound()
         if document.owner_id != actor_id:
             raise DocumentPermissionDenied()
-        if document.state in (DocumentState.ARCHIVED or DocumentState.LOCKED):
+        if document.state in (DocumentState.ARCHIVED, DocumentState.LOCKED):
             raise InvalidDocumentState("Cannot merge document with current state")
 
         # create the new merged version
@@ -242,6 +239,6 @@ class ProposalService:
 
         # mark and switch pointer
         document.draft_version_id = merged_version.id
-        proposal.merged_at = now
+        proposal.merged_at = dt.now(timezone.utc)
 
         return merged_version
