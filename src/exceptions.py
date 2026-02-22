@@ -34,8 +34,12 @@ class InvalidTokenException(AuthException):
 class RevokedTokenException(AuthException):
     """Raised when a revoked token is provided"""
 
-    def __init__(self, message: str, status_code: int = status.HTTP_401_UNAUTHORIZED):
-        super().__init__("Token has been revoked", status_code)
+    def __init__(
+        self,
+        message: str = "Token has been revoked",
+        status_code: int = status.HTTP_401_UNAUTHORIZED,
+    ):
+        super().__init__(message, status_code)
 
 
 class AccessTokenRequiredException(AuthException):
@@ -170,32 +174,28 @@ class InvalidContributionTarget(DocumentError):
     """Raised when document owner attempts contribution"""
 
     def __init__(self, message: str = "Owner cannot be target contributor"):
-        self.message = message
-        Exception.__init__(self, self.message)
+        super().__init__(message, status_code=status.HTTP_400_BAD_REQUEST)
 
 
 class ContributionAlreadyExists(DocumentError):
     """Raised when a contribution record already exists"""
 
     def __init__(self, message: str = "Contibution already exists"):
-        self.message = message
-        Exception.__init__(self, self.message)
+        super().__init__(message, status_code=status.HTTP_409_CONFLICT)
 
 
 class ContributionAlreadyRevoked(DocumentError):
     """Raised when a contribution request is revoked"""
 
     def __init__(self, message: str = "Contibution already revoked"):
-        self.message = message
-        Exception.__init__(self, self.message)
+        super().__init__(message, status_code=status.HTTP_409_CONFLICT)
 
 
 class ContributionNotFound(DocumentError):
     """Raised when contribution is not found"""
 
     def __init__(self, message: str = "Contibution not found"):
-        self.message = message
-        Exception.__init__(self, self.message)
+        super().__init__(message, status_code=status.HTTP_404_NOT_FOUND)
 
 
 # PROPOSAL EXCEPTION
@@ -203,21 +203,18 @@ class ProposalNotFound(DocumentError):
     """Rasied when proposal is not found"""
 
     def __init__(self, message: str = "Proposal not found"):
-        self.message = message
-        Exception.__init__(self, self.message)
+        super().__init__(message, status_code=status.HTTP_404_NOT_FOUND)
 
 
 class InvalidProposalState(DocumentError):
     """Rasied when proposal is not found"""
 
     def __init__(self, message: str = "Proposal cannot be altered in this state"):
-        self.message = message
-        Exception.__init__(self, self.message)
+        super().__init__(message, status_code=status.HTTP_409_CONFLICT)
 
 
 class ProposalAlreadyMerged(DocumentError):
     """Rasied when proposal is already merged"""
 
     def __init__(self, message: str = "Proposal already merged"):
-        self.message = message
-        Exception.__init__(self, self.message)
+        super().__init__(message, status_code=status.HTTP_409_CONFLICT)
