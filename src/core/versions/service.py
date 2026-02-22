@@ -122,6 +122,16 @@ class VersionService:
     async def get_all_versions(
         self, document_id: uuid.UUID, actor_id: uuid.UUID
     ) -> list[VersionORM]:
+        document_result = await self.session.execute(
+            select(DocumentORM).where(DocumentORM.id == document_id)
+        )
+        document = document_result.scalar_one_or_none()
+        if document is None:
+            raise DocumentNotFound()
+
+        if document.visibility == DocumentVisibility.PRIVATE:
+            self._ensure_can_modify(document, actor_id)
+
         statement = (
             select(VersionORM)
             .where(VersionORM.document_id == document_id)
