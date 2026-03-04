@@ -36,7 +36,9 @@ class VersionService:
             select(DocumentORM).where(DocumentORM.id == document_id).with_for_update()
         )
         result = await self.session.execute(statement)
-        document = result.scalar_one()
+        document = result.scalar_one_or_none()
+        if document is None:
+            raise DocumentNotFound()
 
         self._ensure_can_modify(document, author_id)
 
