@@ -1,71 +1,80 @@
 # WriteWinged API
 
-A collaborative writing platform backend
-
-## What is WriteWinged?
-
-WriteWinged reimagines creative writing as a dynamic, version-controlled experience. Similar to how development teams build software together, WriteWinged empowers writers to build stories collaboratively—with full version history, collaborative suggestions, and transparent ownership across contributions.
-Whether you're a solo author tracking your creative iterations or a community building worlds together, WriteWinged provides the infrastructure for stories to grow, adapt, and improve through meaningful collaboration
+WriteWinged is a collaborative writing backend inspired by software-style workflows: versioning, contributor permissions, and proposal reviews.
 
 ## Core Concepts
 
-- **Documents** are owned by a single author
-- **Versions** represent authoritative snapshots of content
-- **Contributors** may suggest changes but cannot directly mutate content
-- **Proposals** act like pull requests — suggested changes awaiting review
-- **Publishing** is an explicit intent, not a side effect
-- **Merging** is a controlled operation with strict invariants
+- Documents are owned by one author.
+- Versions are authoritative snapshots of document content.
+- Contributors can propose changes but cannot publish directly.
+- Proposals behave like pull requests.
+- Publishing is explicit, not implicit.
 
 ## Features
 
-### Implemented
+### Authentication and Users
 
-#### Authentication & Users
-
-- Email/password registration
+- Email/password registration and login
 - Google OAuth login
-- JWT-based authentication
-- User profile management
+- JWT access/refresh tokens
+- Email verification and password reset flows
 
-#### Documents
+### Documents
 
-- Create, read, update, delete (soft deletion)
-- Ownership enforcement
-- Visibility controls (public/private)
-- Lifecycle states:
-  - Active
-  - Locked (readable, no writes)
-  - Archived (immutable, unreadable)
-- Mutability guards enforced at the service layer
+- Create, rename, lock/unlock, archive/unarchive, soft delete
+- Public/private visibility
+- Owner-only management controls
 
-#### Version Control
+### Version Control
 
 - Version creation with transactional locking
-- Single draft invariant per document
-- Publish / unpublish flows
-- Strong consistency using row-level locks
-- Illegal state prevention via service-level invariants
+- Single draft pointer and publish/unpublish behavior
+- State-aware mutability checks
 
-#### Collaboration
+### Collaboration and Proposals
 
-- Contributor invitations and revocation
-- Owner-only management
-- Immutable contribution history (no soft deletes)
-- Archived documents preserve contributor history
-- Contributors cannot directly create or publish versions
+- Add/revoke contributors
+- Contributor proposal workflow (open, accept, reject, withdraw)
+- Owner-controlled proposal merge into draft version
 
-#### Proposals (Pull Request Model)
+## Tech Stack
 
-- Contributors submit proposals instead of editing directly
-- Owners review, accept, or reject proposals
-- Accepted proposals can be merged into new versions
-- Merge operation is atomic and auditable
-- Proposal lifecycle enforced via explicit states
+- FastAPI
+- SQLAlchemy/SQLModel
+- PostgreSQL
+- Redis
+- Alembic
+- uv (dependency and environment management)
 
-## Current Status
+## Local Setup (uv)
 
-**Yet to deploy**
+1. Create `.env` from `.env.sample` and set required values.
+2. Install dependencies:
 
-**In Active Development**
+```bash
+uv sync
+```
 
-This project is part of my journey learning backend development with FastAPI. It reflects a deep exploration of backend architecture, domain modeling, and professional engineering practices using FastAPI and SQLAlchemy.
+3. Run migrations:
+
+```bash
+uv run alembic upgrade head
+```
+
+4. Start API:
+
+```bash
+uv run uvicorn src:app --host 0.0.0.0 --port 8000 --reload
+```
+
+## Useful Commands
+
+```bash
+uv run pytest
+uv run alembic revision --autogenerate -m "your message"
+uv run alembic downgrade -1
+```
+
+## Status
+
+In active development.
