@@ -1,6 +1,5 @@
 from pydantic_settings import SettingsConfigDict, BaseSettings
 from pydantic import SecretStr
-from sqlalchemy import create_engine, inspect
 
 
 class CustomBaseSettings(BaseSettings):
@@ -12,6 +11,9 @@ class CustomBaseSettings(BaseSettings):
 class Config(CustomBaseSettings):
     DATABASE_URL: str
     SQL_ECHO: bool = False
+    ENVIRONMENT: str = "development"
+    DB_STARTUP_MAX_WAIT_SECONDS: int = 30
+    DB_STARTUP_RETRY_INTERVAL_SECONDS: int = 2
     JWT_SECRET: str
     JWT_ALGORITHM: str
     API_VERSION: str
@@ -39,9 +41,3 @@ class Config(CustomBaseSettings):
 
 
 config = Config()  # type: ignore
-
-
-# engine = create_engine(config.DATABASE_URL)
-# insp = inspect(engine)
-# tables = insp.get_table_names()
-# print(tables)
