@@ -77,4 +77,6 @@ uv run alembic downgrade -1
 
 ## Status
 
-In active development.
+Yet to deploy
+
+This project is part of my journey learning backend development with FastAPI. It reflects a deep exploration of backend architecture, domain modeling, and professional engineering practices using FastAPI and SQLAlchemy.
