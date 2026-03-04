@@ -70,7 +70,7 @@ uv run uvicorn src:app --host 0.0.0.0 --port 8000 --reload
 ## Production Run (Gunicorn + Uvicorn Worker)
 
 ```bash
-uv run gunicorn src:app -k uvicorn.workers.UvicornWorker --bind 0.0.0.0:8000 --workers 2 --access-logfile - --error-logfile -
+gunicorn src:app -k uvicorn.workers.UvicornWorker --bind 0.0.0.0:8000 --workers 2 --access-logfile - --error-logfile -
 ```
 
 ## Useful Commands
