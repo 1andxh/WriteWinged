@@ -1,14 +1,10 @@
-from fastapi import Depends
-from passlib.context import CryptContext
 from fastapi.security import OAuth2PasswordBearer
 import bcrypt, hashlib
 from datetime import datetime, timedelta, timezone
 import jwt
 import uuid
 from src.config import config
-from ..db.dependency import session
 import logging
-from typing import Annotated
 
 
 from authlib.integrations.starlette_client import OAuth

@@ -5,10 +5,8 @@ description = "Collaborative writing platform backend"
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
-    "aioredis==2.0.1",
     "aiosmtplib==5.0.0",
     "alembic==1.17.2",
-    "annotated-doc==0.0.4",
     "annotated-types==0.7.0",
     "anyio==4.12.0",
     "async-timeout==5.0.1",
@@ -24,10 +22,7 @@ dependencies = [
     "dnspython==2.8.0",
     "email-validator==2.3.0",
     "fastapi==0.123.9",
-    "fastapi-cli==0.0.16",
-    "fastapi-cloud-cli==0.6.0",
     "fastapi-mail==1.6.0",
-    "fastar==0.8.0",
     "greenlet==3.3.0",
     "h11==0.16.0",
     "hiredis==3.3.0",
@@ -41,7 +36,6 @@ dependencies = [
     "markdown-it-py==4.0.0",
     "MarkupSafe==3.0.3",
     "mdurl==0.1.2",
-    "passlib==1.7.4",
     "psycopg2-binary==2.9.11",
     "pycparser==2.23",
     "pydantic==2.12.5",
@@ -56,7 +50,6 @@ dependencies = [
     "regex==2025.11.3",
     "rich==14.2.0",
     "rich-toolkit==0.17.0",
-    "rignore==0.7.6",
     "sentry-sdk==2.47.0",
     "shellingham==1.5.4",
     "SQLAlchemy==2.0.44",
@@ -71,9 +64,18 @@ dependencies = [
     "websockets==15.0.1",
 ]
 
+[dependency-groups]
+dev = [
+    "pytest==8.4.2",
+    "pytest-asyncio==1.2.0",
+]
+
 [build-system]
 requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [tool.uv]
 package = false
+
+[tool.pytest.ini_options]
+pythonpath = ["."]
