@@ -1,11 +1,9 @@
-from fastapi import Request, status, Depends
-from annotated_doc import Doc
+from fastapi import Request, Depends
 from fastapi.security import HTTPBearer
 from fastapi.security.http import HTTPAuthorizationCredentials
 from typing import Any, override, Annotated
 from .utils import decode_token
 from src.db.main import get_session
-from fastapi.exceptions import HTTPException
 from sqlmodel.ext.asyncio.session import AsyncSession
 from .service import UserService
 from src.db.redis import token_in_blocklist
@@ -14,6 +12,7 @@ from ..exceptions import (
     RefreshTokenRequiredException,
     InvalidTokenException,
     RevokedTokenException,
+    InvalidCredentialsException,
 )
 
 user_service = UserService()
@@ -81,4 +80,6 @@ session = Annotated[AsyncSession, Depends(get_session)]
 async def get_current_user(token_data: token_data, session: session):
     user_email = token_data["user"]["email"]
     user = await user_service.get_user_by_email(user_email, session)
+    if user is None:
+        raise InvalidCredentialsException()
     return user
