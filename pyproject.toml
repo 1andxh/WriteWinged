@@ -24,6 +24,7 @@ dependencies = [
     "fastapi==0.123.9",
     "fastapi-mail==1.6.0",
     "greenlet==3.3.0",
+    "gunicorn>=25.1.0",
     "h11==0.16.0",
     "hiredis==3.3.0",
     "httpcore==1.0.9",
