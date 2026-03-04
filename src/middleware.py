@@ -4,7 +4,9 @@ from starlette.middleware.sessions import SessionMiddleware
 from .config import config
 import logging
 
-logger = logging.getLogger("writewinged.middleware")
+secret_key = config.MIDDLEWARE_SECRET
+
+logger = logging.getLogger("uvicorn.access")
 
 
 def register_middleware(app: FastAPI):
@@ -14,17 +16,25 @@ def register_middleware(app: FastAPI):
         allowed_hosts=["localhost", "127.0.0.1", "127.0.0.1:6379"],
     )
 
-    app.add_middleware(
-        SessionMiddleware, secret_key=config.MIDDLEWARE_SECRET
-    )  # required for OAuth to work
+    app.add_middleware(SessionMiddleware, secret_key)  # required for OAuth to work
 
     @app.middleware("http")
     async def get_request_info(request: Request, call_next):
-        if config.LOG_REQUESTS:
-            logger.info("incoming request %s %s", request.method, request.url.path)
-
         response = await call_next(request)
-
         if config.LOG_REQUESTS:
-            logger.info("response status %s", response.status_code)
+            client = request.client.host if request.client else "-"
+            method = request.method
+            path = request.url.path
+            if request.url.query:
+                path = f"{path}?{request.url.query}"
+            http_version = request.scope.get("http_version", "1.1")
+            status_code = response.status_code
+            logger.info(
+                '%s - "%s %s HTTP/%s" %d',
+                client,
+                method,
+                path,
+                http_version,
+                status_code,
+            )
         return response
