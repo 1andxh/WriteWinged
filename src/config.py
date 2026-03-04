@@ -35,7 +35,7 @@ class Config(CustomBaseSettings):
     DOMAIN: str
     EMAIL_SECRET: str
     PASSWORD_RESET_SECRET: str
-    LOG_REQUESTS: bool = False
+    LOG_REQUESTS: bool = True
 
 
 config = Config()  # type: ignore
