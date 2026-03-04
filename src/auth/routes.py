@@ -1,10 +1,7 @@
 from fastapi import APIRouter, Request, status, Depends, BackgroundTasks
 from authlib.integrations.starlette_client import OAuthError
-from fastapi.security import OAuth2PasswordRequestForm
-from src.mail.schemas import EmailValidator
 from .utils import oauth, hash_password
 from ..db.dependency import session
-from fastapi.requests import Request
 from fastapi.exceptions import HTTPException
 from .schemas import (
     GoogleUser,
@@ -17,11 +14,9 @@ from .schemas import (
 )
 from .service import GoogleUserService, UserService
 from .dependencies import AccessTokenBearer, RefreshTokenBearer, get_current_user
-from fastapi.responses import JSONResponse, RedirectResponse, HTMLResponse
-from fastapi.exceptions import HTTPException
+from fastapi.responses import JSONResponse
 from .utils import create_access_token, verify_password, get_tokens
-from datetime import timedelta, datetime
-from .models import User
+from datetime import datetime
 from typing import Annotated, Any
 from ..db.redis import add_token_to_blocklist
 from ..mail.service import MailService
@@ -29,9 +24,7 @@ from ..mail.utils import decode_url_safe_token
 from ..mail.mail import create_message, mail
 from ..config import config
 from .templates import templates
-from datetime import datetime as dt
 from urllib.parse import quote
-import pprint
 from ..exceptions import (
     InvalidCredentialsException,
     UserAlreadyExistsException,
@@ -68,9 +61,6 @@ async def auth_via_google(request: Request, session: session):
             detail="Could not validate credentials",
         )
     user = token.get("userinfo")
-
-    print(user)
-
     google_user = GoogleUser(**user)
 
     is_existing_user = await google_user_service.get_user_by_google_sub(
@@ -88,7 +78,7 @@ async def auth_via_google(request: Request, session: session):
         access_token, refresh_token = get_tokens(user)
         return JSONResponse(
             content={
-                "token": "bearer",
+                "token_type": "bearer",
                 "access_token": access_token,
                 "refresh_token": refresh_token,
             },
@@ -117,6 +107,7 @@ async def login(login: UserLogin, session: session):
 
             return JSONResponse(
                 content={
+                    "token_type": "bearer",
                     "access_token": access_token,
                     "refresh_token": refresh_token,
                 },
@@ -260,19 +251,3 @@ async def reset_password(password: PasswordResetConfirm, token: str, session: se
         content={"message": "Password reset successful"}, status_code=status.HTTP_200_OK
     )
 
-
-# test email route
-@auth_router.post("/send-mail")
-async def send_mail(emails: EmailValidator, bg_task: BackgroundTasks):
-    recipients = emails.addresses
-    template = templates.get_template("base.html")
-
-    html_content = template.render({"year": dt.now().year})
-
-    message = create_message(
-        recepients=recipients,
-        subject="Write. Collaborate. Create",
-        body=html_content,
-    )
-    bg_task.add_task(mail.send_message, message)
-    return {"message": "Email sent successfully"}

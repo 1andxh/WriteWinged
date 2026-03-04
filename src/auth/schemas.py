@@ -28,9 +28,9 @@ class UserCreateBio(BaseModel):
 
 
 class TokenResponse(BaseModel):
+    token_type: str
     access_token: str
-    refresh_toke: str
-    type: str
+    refresh_token: str
 
 
 # OAuth Schema
