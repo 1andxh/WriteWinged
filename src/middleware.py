@@ -1,16 +1,10 @@
 from fastapi import FastAPI, Request
-from fastapi.middleware.httpsredirect import HTTPSRedirectMiddleware
 from fastapi.middleware.trustedhost import TrustedHostMiddleware
-from fastapi.middleware.cors import CORSMiddleware
 from starlette.middleware.sessions import SessionMiddleware
 from .config import config
 import logging
 
-secret_key = config.MIDDLEWARE_SECRET
-
-logger = logging.getLogger("uvicorn.access")
-
-logger.disabled = True
+logger = logging.getLogger("writewinged.middleware")
 
 
 def register_middleware(app: FastAPI):
@@ -20,13 +14,17 @@ def register_middleware(app: FastAPI):
         allowed_hosts=["localhost", "127.0.0.1", "127.0.0.1:6379"],
     )
 
-    app.add_middleware(SessionMiddleware, secret_key)  # required for OAuth to work
+    app.add_middleware(
+        SessionMiddleware, secret_key=config.MIDDLEWARE_SECRET
+    )  # required for OAuth to work
 
     @app.middleware("http")
     async def get_request_info(request: Request, call_next):
-        print(f"INCOMING: {request.method} {request.url.path}")
+        if config.LOG_REQUESTS:
+            logger.info("incoming request %s %s", request.method, request.url.path)
 
         response = await call_next(request)
 
-        print(f"RESPONSE: STATUS {response.status_code}")
+        if config.LOG_REQUESTS:
+            logger.info("response status %s", response.status_code)
         return response

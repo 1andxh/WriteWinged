@@ -1,5 +1,6 @@
 from fastapi import FastAPI
 from contextlib import asynccontextmanager
+import logging
 from src.db.main import init_db
 from src.config import config
 from src.auth.routes import auth_router
@@ -16,14 +17,16 @@ from .exception_handler import (
     RequestValidationError,
 )
 
+logger = logging.getLogger("writewinged.app")
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    print(f"server started...")
+    logger.info("server started")
     await init_db()
 
     yield
-    print(f"server stopped")
+    logger.info("server stopped")
 
 
 version = config.API_VERSION
