@@ -11,4 +11,4 @@ RUN uv sync --frozen --no-dev
 
 COPY . .
 
-CMD ["gunicorn", "src:app", "-k", "uvicorn.workers.UvicornWorker", "--bind", "0.0.0.0:8000", "--workers", "2", "--access-logfile", "-", "--error-logfile", "-"]
+CMD ["sh", "-c", "gunicorn src:app -k uvicorn.workers.UvicornWorker --bind 0.0.0.0:${PORT:-8000} --workers ${GUNICORN_WORKERS:-2} --error-logfile -"]

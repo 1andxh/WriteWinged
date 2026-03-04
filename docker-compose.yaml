@@ -6,14 +6,20 @@ services:
     restart: unless-stopped
     env_file:
       - .env
-    network_mode: host
+    environment:
+      PORT: ${PORT:-8000}
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    ports:
+      - "${PORT:-8000}:${PORT:-8000}"
 
   db:
     image: postgres:16
     container_name: writewinged_db
     restart: unless-stopped
-    profiles:
-      - local-db
     environment:
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
@@ -32,8 +38,6 @@ services:
     image: redis:7
     container_name: writewinged_redis
     restart: unless-stopped
-    profiles:
-      - local-redis
     command: ["redis-server", "--appendonly", "yes"]
     ports:
       - "6379:6379"
