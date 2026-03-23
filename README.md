@@ -46,41 +46,6 @@ WriteWinged is a collaborative writing backend inspired by software-style workfl
 - Alembic
 - uv (dependency and environment management)
 
-## Local Setup (uv)
-
-1. Create `.env` from `.env.sample` and set required values.
-2. Install dependencies:
-
-```bash
-uv sync
-```
-
-3. Run migrations:
-
-```bash
-uv run alembic upgrade head
-```
-
-4. Start API:
-
-```bash
-uv run uvicorn src:app --host 0.0.0.0 --port 8000 --reload
-```
-
-## Production Run (Gunicorn + Uvicorn Worker)
-
-```bash
-gunicorn src:app -k uvicorn.workers.UvicornWorker --bind 0.0.0.0:8000 --workers 2 --access-logfile - --error-logfile -
-```
-
-## Useful Commands
-
-```bash
-uv run pytest
-uv run alembic revision --autogenerate -m "your message"
-uv run alembic downgrade -1
-```
-
 ## Status
 
 Yet to deploy
