@@ -1,19 +1,23 @@
+import uuid
+from datetime import datetime
+from enum import Enum
+
 from sqlalchemy import (
-    CheckConstraint,
-    Enum as SAEnum,
-    String,
-    DateTime,
     Boolean,
+    CheckConstraint,
+    DateTime,
     ForeignKey,
+    String,
     func,
 )
-from datetime import datetime
-import uuid
-from enum import Enum
-from ..db.base import Base
+from sqlalchemy import (
+    Enum as SAEnum,
+)
 from sqlalchemy.dialects.postgresql import INET, UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
+
 from ..core.documents.models import DocumentORM
+from ..db.base import Base
 
 
 class AuthProvider(str, Enum):

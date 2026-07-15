@@ -5,6 +5,7 @@ from fastapi.security import HTTPBearer
 from fastapi.security.http import HTTPAuthorizationCredentials
 
 from src.db.dependency import session
+
 from ..exceptions import InvalidCredentialsException, InvalidTokenException
 from .models import User, UserSessionORM
 from .schemas import TokenPayload

@@ -1,14 +1,17 @@
 import hashlib
+import logging
 import secrets
-from datetime import datetime, timedelta, timezone
-import jwt
 import uuid
+from datetime import datetime, timedelta, timezone
+
+import jwt
 from argon2 import PasswordHasher
 from argon2.exceptions import VerificationError
 from pydantic import ValidationError
+
 from src.config import config
+
 from .schemas import TokenPayload
-import logging
 
 jwt_secret_key = config.JWT_SECRET
 jwt_algorithm = config.JWT_ALGORITHM

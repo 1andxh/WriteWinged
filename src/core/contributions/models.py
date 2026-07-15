@@ -1,11 +1,13 @@
-from src.db.base import Base
-import sqlalchemy.dialects.postgresql as pg
-from sqlalchemy.orm import Mapped, mapped_column, relationship
-from sqlalchemy import DateTime, func, ForeignKey, UniqueConstraint
 import uuid
 from datetime import datetime
-from src.core.documents import DocumentORM
+
+import sqlalchemy.dialects.postgresql as pg
+from sqlalchemy import DateTime, ForeignKey, UniqueConstraint, func
+from sqlalchemy.orm import Mapped, mapped_column, relationship
+
 from src.auth import User
+from src.core.documents import DocumentORM
+from src.db.base import Base
 
 
 class ContributionORM(Base):

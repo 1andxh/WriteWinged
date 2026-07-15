@@ -1,8 +1,10 @@
-from pydantic import BaseModel, ConfigDict, Field
-from datetime import datetime
 import uuid
-from src.core.versions.schemas import VersionRead
+from datetime import datetime
+
+from pydantic import BaseModel, ConfigDict, Field
+
 from src.core.contributions.schemas import ListContributor
+from src.core.versions.schemas import VersionRead
 
 
 class DocumentResponse(BaseModel):

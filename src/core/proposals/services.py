@@ -1,19 +1,24 @@
-from ...db.dependency import session
-from ..versions import VersionORM
 import uuid
-from src.core.documents import DocumentORM
-from ...exceptions import (
-    DocumentNotFound,
-    InvalidDocumentState,
-    DocumentPermissionDenied,
-    ProposalNotFound,
-    InvalidProposalState,
-)
-from datetime import datetime as dt, timezone
-from sqlalchemy import select, desc
+from datetime import datetime as dt
+from datetime import timezone
+
+from sqlalchemy import desc, select
+
 from src.core.contributions import ContributionORM
+from src.core.documents import DocumentORM
 from src.core.documents.models import DocumentState
 from src.core.proposals.models import ProposalORM, ProposalState
+
+from ...db.dependency import session
+from ...exceptions import (
+    DocumentNotFound,
+    DocumentPermissionDenied,
+    InvalidDocumentState,
+    InvalidProposalState,
+    ProposalNotFound,
+)
+from ..versions import VersionORM
+
 
 class ProposalService:
     def __init__(self, session: session) -> None:

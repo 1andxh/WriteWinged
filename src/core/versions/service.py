@@ -1,20 +1,21 @@
 # from src.db.dependency import session
+import uuid
+
+from sqlalchemy import asc, select
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, asc, desc
+
 from src.core.documents import DocumentORM
 from src.core.documents.models import DocumentVisibility
 from src.core.versions import VersionORM
-import uuid
 from src.core.versions.utils import (
     can_author_version,
     can_publish_version,
     ensure_version_belongs,
 )
 from src.exceptions import (
-    VersionDoesNotExist,
     DocumentNotFound,
-    DocumentNotMutable,
     DocumentPermissionDenied,
+    VersionDoesNotExist,
 )
 
 

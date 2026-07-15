@@ -1,5 +1,6 @@
-from pydantic import BaseModel, ConfigDict, EmailStr, Field
 import uuid
+
+from pydantic import BaseModel, ConfigDict, EmailStr, Field
 
 
 class UserResponse(BaseModel):

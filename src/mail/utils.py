@@ -1,7 +1,8 @@
+import logging
+from typing import Any
+
 from fastapi import HTTPException, status
 from itsdangerous import URLSafeTimedSerializer
-from typing import Any
-import logging
 
 # nts: too generic
 # def create_url_safe_token(data: dict):

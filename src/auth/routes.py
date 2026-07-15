@@ -12,7 +12,6 @@ from .schemas import (
     UserResponse,
 )
 
-
 auth_router = APIRouter()
 current_user = Annotated[User, Depends(get_current_user)]
 

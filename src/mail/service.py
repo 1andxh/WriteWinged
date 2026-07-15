@@ -1,5 +1,4 @@
 from itsdangerous import URLSafeTimedSerializer
-from src.config import config
 
 
 class MailService:

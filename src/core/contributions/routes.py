@@ -1,19 +1,21 @@
-from fastapi import HTTPException, status, Depends, APIRouter
-from src.auth.dependencies import get_current_user
-from src.auth import User
 import uuid
 from typing import Annotated
-from .services import ContributionService
-from .dependency import get_contribution_service
-from .schemas import AddContributorModel, ListContributor
+
+from fastapi import APIRouter, Depends, HTTPException, status
+
+from src.auth import User
+from src.auth.dependencies import get_current_user
 from src.exceptions import (
-    DocumentPermissionDenied,
-    DocumentNotFound,
-    WriteWingedException,
     ContributionAlreadyRevoked,
     ContributionNotFound,
+    DocumentNotFound,
+    DocumentPermissionDenied,
+    WriteWingedException,
 )
 
+from .dependency import get_contribution_service
+from .schemas import AddContributorModel, ListContributor
+from .services import ContributionService
 
 contributions_router = APIRouter()
 user = Annotated[User, Depends(get_current_user)]

@@ -1,16 +1,18 @@
-from sqlalchemy.ext.asyncio import (
-    create_async_engine,
-    async_sessionmaker,
-    AsyncSession,
-)
-from typing import AsyncGenerator
-from src.config import config
-from sqlalchemy import text
 import asyncio
 import logging
 import os
 import time
+from typing import AsyncGenerator
 from urllib.parse import urlparse
+
+from sqlalchemy import text
+from sqlalchemy.ext.asyncio import (
+    AsyncSession,
+    async_sessionmaker,
+    create_async_engine,
+)
+
+from src.config import config
 
 logger = logging.getLogger("writewinged.db")
 
@@ -32,7 +34,8 @@ def _database_target() -> tuple[str | None, int | None]:
 
 def _is_production_like() -> bool:
     env_name = config.ENVIRONMENT.lower()
-    return env_name in {"prod", "production"} or os.getenv("RENDER", "").lower() == "true"
+    is_render = os.getenv("RENDER", "").lower() == "true"
+    return env_name in {"prod", "production"} or is_render
 
 
 async def init_db() -> None:

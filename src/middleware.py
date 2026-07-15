@@ -1,7 +1,9 @@
+import logging
+
 from fastapi import FastAPI, Request
 from fastapi.middleware.trustedhost import TrustedHostMiddleware
+
 from .config import config
-import logging
 
 logger = logging.getLogger("uvicorn.access")
 

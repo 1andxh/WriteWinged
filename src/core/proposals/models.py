@@ -1,12 +1,14 @@
-import sqlalchemy.dialects.postgresql as pg
-from sqlalchemy import Column, Enum as SAEnum, String, Text, DateTime, ForeignKey, func
-from sqlalchemy.orm import Mapped, mapped_column, relationship
 import uuid
-from typing import Optional
+from datetime import datetime
 from enum import Enum
-from datetime import datetime, timezone
-from src.db.base import Base
+
+import sqlalchemy.dialects.postgresql as pg
+from sqlalchemy import DateTime, ForeignKey, Text, func
+from sqlalchemy import Enum as SAEnum
+from sqlalchemy.orm import Mapped, mapped_column, relationship
+
 from src.core.documents import DocumentORM
+from src.db.base import Base
 
 
 class ProposalState(str, Enum):

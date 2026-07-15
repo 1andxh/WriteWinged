@@ -1,11 +1,13 @@
-import sqlalchemy.dialects.postgresql as pg
-from sqlalchemy import Enum as SAEnum, String, Text, DateTime, func, ForeignKey, Integer
-from sqlalchemy.orm import Mapped, mapped_column, relationship
 import uuid
-from datetime import datetime, timezone
-from src.db.base import Base
-from src.core.documents import DocumentORM
+from datetime import datetime
+
+import sqlalchemy.dialects.postgresql as pg
+from sqlalchemy import DateTime, ForeignKey, Text, func
+from sqlalchemy.orm import Mapped, mapped_column, relationship
+
 from src.auth.models import User
+from src.core.documents import DocumentORM
+from src.db.base import Base
 
 
 class VersionORM(Base):

@@ -1,11 +1,11 @@
-from types import SimpleNamespace
 import uuid
+from types import SimpleNamespace
 
 from fastapi.testclient import TestClient
 
 from src import app
-from src.auth.models import UserRole
 from src.auth.dependencies import get_auth_service, get_current_user, get_token_service
+from src.auth.models import UserRole
 from src.auth.service import AccessTokens
 from src.config import Config
 from src.core.documents.dependency import get_document_service
@@ -211,7 +211,9 @@ def test_document_routes_call_service_with_frontend_friendly_shapes():
         def __init__(self):
             self.deleted = False
 
-        async def get_all_documents(self, actor_id, search_query=None, limit=10, offset=0):
+        async def get_all_documents(
+            self, actor_id, search_query=None, limit=10, offset=0
+        ):
             assert actor_id == user_id
             return [make_document()]
 

@@ -1,18 +1,19 @@
-from fastapi import APIRouter, Depends, status, Query
+import uuid
+from typing import Annotated
+
+from fastapi import APIRouter, Depends, Query, status
+
+from ...auth.dependencies import get_current_user
+from ...auth.models import User
+from ...exceptions import DocumentPermissionDenied
+from .dependency import get_document_service
 from .schemas import (
-    DocumentResponse,
     DocumentCreateRequest,
     DocumentReadResponse,
     DocumentRenameRequest,
+    DocumentResponse,
 )
 from .service import DocumentService, DocumentVisibility
-import uuid
-from ...auth.dependencies import get_current_user
-from ...auth.models import User
-from typing import Annotated
-from .dependency import get_document_service
-from ...exceptions import DocumentPermissionDenied
-
 
 document_router = APIRouter()
 document_service = Annotated[DocumentService, Depends(get_document_service)]

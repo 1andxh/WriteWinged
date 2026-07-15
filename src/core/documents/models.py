@@ -1,18 +1,21 @@
 import uuid
 from datetime import datetime
 from enum import Enum
-from typing import Optional, TYPE_CHECKING
-from sqlalchemy import Enum as SAEnum, String, DateTime, ForeignKey, func, Index
+from typing import TYPE_CHECKING, Optional
+
 import sqlalchemy.dialects.postgresql as pg
+from sqlalchemy import DateTime, ForeignKey, Index, String, func
+from sqlalchemy import Enum as SAEnum
 from sqlalchemy.orm import Mapped, mapped_column, relationship
+
 from src.db.base import Base
 
 # using type check pattern
 if TYPE_CHECKING:
-    from src.core.versions import VersionORM
     from src.auth.models import User
     from src.core.contributions import ContributionORM
     from src.core.proposals import ProposalORM
+    from src.core.versions import VersionORM
 
 
 class DocumentVisibility(str, Enum):
