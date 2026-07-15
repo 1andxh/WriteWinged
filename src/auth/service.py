@@ -1,10 +1,8 @@
 from ..auth.models import User, UserRole
 from sqlalchemy.ext.asyncio.session import AsyncSession
-from pydantic import EmailStr
 
-# from sqlmodel.ext.asyncio import
-from sqlmodel import select, exists
-from .schemas import UserCreateModel, GoogleUser, GoogleUserCreateModel
+from sqlmodel import select
+from .schemas import UserCreateModel
 from .utils import hash_password
 
 
@@ -18,10 +16,11 @@ class UserService:
         user = await self.get_user_by_email(email, session)
         return user is not None
 
-    async def create_user(self, dict: UserCreateModel, session: AsyncSession):
-        user_data = dict.model_dump()
+    async def create_user(self, payload: UserCreateModel, session: AsyncSession):
+        user_data = payload.model_dump()
+        password = user_data.pop("password")
         new_user = User(**user_data)
-        new_user.password_hash = hash_password(user_data["password_hash"])
+        new_user.password_hash = hash_password(password)
         new_user.role = UserRole.USER
         session.add(new_user)
         await session.flush()
@@ -33,41 +32,3 @@ class UserService:
 
         await session.flush()
         return user
-
-
-class GoogleUserService:
-    async def create_user_from_google_info(
-        self, google_user: GoogleUser, session: AsyncSession, is_verified: bool = False
-    ) -> User:
-
-        google_sub = google_user.sub
-        email = google_user.email
-
-        result = await session.execute(select(User).where(User.email == email))
-        existing_user: User | None = result.scalar_one_or_none()
-
-        if existing_user:
-            existing_user.google_sub = google_sub
-            await session.flush()
-            await session.refresh(existing_user)
-            return existing_user
-
-        new_user_data = GoogleUserCreateModel(
-            email=email,
-            google_sub=google_user.sub,
-            username=google_user.name,
-            is_verified=is_verified,
-        )
-        data = new_user_data.model_dump()
-        new_user = User(**data)
-        new_user.role = UserRole.USER
-
-        session.add(new_user)
-        await session.flush()
-        await session.refresh(new_user)
-        return new_user
-
-    async def get_user_by_google_sub(self, google_sub: str, session: AsyncSession):
-        statement = select(User).where(User.google_sub == google_sub)
-        result = await session.execute(statement)
-        return result.one_or_none()
