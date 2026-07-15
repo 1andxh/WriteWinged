@@ -10,10 +10,8 @@ import uuid
 from ...auth.dependencies import get_current_user
 from ...auth.models import User
 from typing import Annotated
-from sqlalchemy.ext.asyncio import AsyncSession
 from .dependency import get_document_service
-from ...db.dependency import session
-from ...exceptions import DocumentNotFound, DocumentPermissionDenied, DocumentNotMutable
+from ...exceptions import DocumentPermissionDenied
 
 
 document_router = APIRouter()
@@ -48,16 +46,6 @@ async def list_user_documents(
     return documents
 
 
-@document_router.get("/{document_id}", response_model=DocumentReadResponse)
-async def get_document(document_id: uuid.UUID, service: document_service, user: user):
-    document = await service.get_document(document_id=document_id)
-    if document.visibility == DocumentVisibility.PRIVATE:
-        if document.owner_id != user.id:
-            raise DocumentPermissionDenied()
-
-    return document
-
-
 @document_router.get("/archive", response_model=list[DocumentReadResponse])
 async def get_archived_documents(
     service: document_service,
@@ -70,6 +58,18 @@ async def get_archived_documents(
     return await service.get_archived_documents(
         actor_id=user.id, search_query=q, limit=limit, offset=offset
     )
+
+
+@document_router.get("/{document_id}", response_model=DocumentReadResponse)
+async def get_document(document_id: uuid.UUID, service: document_service, user: user):
+    document = await service.get_document(document_id=document_id)
+    if (
+        document.visibility == DocumentVisibility.PRIVATE
+        and document.owner_id != user.id
+    ):
+        raise DocumentPermissionDenied()
+
+    return document
 
 
 @document_router.post(
