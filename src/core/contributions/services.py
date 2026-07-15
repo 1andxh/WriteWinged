@@ -75,9 +75,7 @@ class ContributionService:
     ) -> None:
 
         statement = (
-            select(DocumentORM)
-            .where(DocumentORM.id == document_id)
-            .with_for_update(nowait=True)
+            select(DocumentORM).where(DocumentORM.id == document_id).with_for_update()
         )
         result = await self.session.execute(statement)
         document = result.scalar_one_or_none()
