@@ -39,7 +39,7 @@ WriteWinged is a collaborative writing backend inspired by software-style workfl
 ## Tech Stack
 
 - FastAPI
-- SQLAlchemy/SQLModel
+- SQLAlchemy
 - PostgreSQL
 - Alembic
 - uv (dependency and environment management)
