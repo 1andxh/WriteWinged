@@ -4,13 +4,12 @@ from src.auth import User
 import uuid
 from typing import Annotated
 from .services import ContributionService
-from .dependency import get_document_service
+from .dependency import get_contribution_service
 from .schemas import AddContributorModel, ListContributor
 from src.exceptions import (
     DocumentPermissionDenied,
     DocumentNotFound,
     WriteWingedException,
-    ContributionAlreadyExists,
     ContributionAlreadyRevoked,
     ContributionNotFound,
 )
@@ -18,7 +17,9 @@ from src.exceptions import (
 
 contributions_router = APIRouter()
 user = Annotated[User, Depends(get_current_user)]
-contribution_service = Annotated[ContributionService, Depends(get_document_service)]
+contribution_service = Annotated[
+    ContributionService, Depends(get_contribution_service)
+]
 
 
 @contributions_router.get(
