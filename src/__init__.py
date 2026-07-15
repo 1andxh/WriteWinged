@@ -9,7 +9,6 @@ from src.core.contributions.routes import contributions_router
 from src.core.documents.routes import document_router
 from src.core.proposals.routes import proposal_router
 from src.core.versions.routes import version_router
-from src.db.main import init_db
 
 from .exception_handler import (
     RequestValidationError,
@@ -26,8 +25,6 @@ logger = logging.getLogger("writewinged.app")
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     logger.info("server started")
-    await init_db()
-
     yield
     logger.info("server stopped")
 
