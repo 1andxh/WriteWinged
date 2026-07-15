@@ -1,10 +1,10 @@
-from pydantic import BaseModel, SecretStr, EmailStr, Field
+from pydantic import BaseModel, ConfigDict, EmailStr, Field
 import uuid
-from datetime import datetime
-from typing import List
 
 
 class UserResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
     id: uuid.UUID
     username: str
     email: str
@@ -15,12 +15,12 @@ class UserResponse(BaseModel):
 class UserCreateModel(BaseModel):
     username: str
     email: EmailStr = Field(min_length=8)
-    password_hash: str = Field(min_length=8, max_length=255)
+    password: str = Field(min_length=8, max_length=255)
 
 
 class UserLogin(BaseModel):
     email: EmailStr
-    password_hash: str
+    password: str
 
 
 class UserCreateBio(BaseModel):
@@ -30,31 +30,3 @@ class UserCreateBio(BaseModel):
 class TokenResponse(BaseModel):
     token_type: str
     access_token: str
-    refresh_token: str
-
-
-# OAuth Schema
-class GoogleUser(BaseModel):
-    sub: str
-    email: str
-    name: str
-
-    class Config:
-        from_attributes = True
-
-
-class GoogleUserCreateModel(BaseModel):
-    email: EmailStr
-    google_sub: str
-    username: str
-    is_verified: bool
-
-
-# password schema
-class PasswordResetRequest(BaseModel):
-    email: EmailStr
-
-
-class PasswordResetConfirm(BaseModel):
-    new_password: str = Field(min_length=8, max_length=255)
-    confirm_new_password: str
