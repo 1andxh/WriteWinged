@@ -1,25 +1,11 @@
-# from __future__ import annotations
 import uuid
-from datetime import datetime, timezone
+from datetime import datetime
 from enum import Enum
-from typing import Optional, List, TYPE_CHECKING
-from sqlmodel import SQLModel, Field, Relationship
-from sqlalchemy import (
-    Column,
-    Enum as SAEnum,
-    String,
-    Text,
-    DateTime,
-    ForeignKey,
-    func,
-    Index,
-)
+from typing import Optional, TYPE_CHECKING
+from sqlalchemy import Enum as SAEnum, String, DateTime, ForeignKey, func, Index
 import sqlalchemy.dialects.postgresql as pg
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from src.db.base import Base
-
-# from src.core.versions import VersionORM
-# from src.auth.models import User
 
 # using type check pattern
 if TYPE_CHECKING:
@@ -118,11 +104,6 @@ class DocumentORM(Base):
         foreign_keys=[draft_version_id], post_update=True
     )
     owner: Mapped["User"] = relationship(back_populates="documents")
-
-    @property
-    def contributors(self) -> list["ContributionORM"]:
-
-        return self.contributions
 
     __table_args__ = (
         Index(
