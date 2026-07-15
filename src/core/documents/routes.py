@@ -105,7 +105,7 @@ async def archive_document(
     return document
 
 
-@document_router.delete("/{document_id}/", status_code=status.HTTP_204_NO_CONTENT)
+@document_router.delete("/{document_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_document(
     document_id: uuid.UUID, service: document_service, user: user
 ):
