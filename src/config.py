@@ -1,5 +1,4 @@
 from pydantic_settings import SettingsConfigDict, BaseSettings
-from pydantic import SecretStr
 
 
 class CustomBaseSettings(BaseSettings):
@@ -15,29 +14,24 @@ class Config(CustomBaseSettings):
     DB_STARTUP_MAX_WAIT_SECONDS: int = 30
     DB_STARTUP_RETRY_INTERVAL_SECONDS: int = 2
     JWT_SECRET: str
-    JWT_ALGORITHM: str
-    API_VERSION: str
-    GOOGLE_CLIENT_ID: str
-    GOOGLE_CLIENT_SECRET: str
-    GOOGLE_REDIRECT_URI: str
-    MIDDLEWARE_SECRET: str
-    REDIS_URL: str
-
-    # mail config
-    MAIL_USERNAME: str
-    MAIL_PASSWORD: SecretStr
-    MAIL_PORT: int
-    MAIL_SERVER: str
-    MAIL_FROM: str
-    MAIL_FROM_NAME: str
-    MAIL_STARTTLS: bool = True
-    MAIL_SSL_TLS: bool = False
-    USE_CREDENTIALS: bool = True
-    VALIDATE_CERTS: bool = True
-    DOMAIN: str
-    EMAIL_SECRET: str
-    PASSWORD_RESET_SECRET: str
+    JWT_ALGORITHM: str = "HS256"
+    API_VERSION: str = "0.1.0"
+    ALLOWED_HOSTS: str = "localhost,127.0.0.1,testserver"
     LOG_REQUESTS: bool = True
+
+    GOOGLE_CLIENT_ID: str | None = None
+    GOOGLE_CLIENT_SECRET: str | None = None
+    GOOGLE_REDIRECT_URI: str | None = None
+    REDIS_URL: str | None = None
+    MAIL_USERNAME: str | None = None
+    MAIL_PASSWORD: str | None = None
+    MAIL_PORT: int | None = None
+    MAIL_SERVER: str | None = None
+    MAIL_FROM: str | None = None
+    MAIL_FROM_NAME: str | None = None
+    DOMAIN: str | None = None
+    EMAIL_SECRET: str | None = None
+    PASSWORD_RESET_SECRET: str | None = None
 
 
 config = Config()  # type: ignore
