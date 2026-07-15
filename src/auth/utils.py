@@ -1,92 +1,65 @@
-from fastapi.security import OAuth2PasswordBearer
-import bcrypt, hashlib
-from datetime import datetime, timedelta, timezone
-import jwt
-import uuid
-from src.config import config
+import hashlib
 import logging
+import secrets
+import uuid
+from datetime import datetime, timedelta, timezone
 
+import jwt
+from argon2 import PasswordHasher
+from argon2.exceptions import VerificationError
+from pydantic import ValidationError
 
-from authlib.integrations.starlette_client import OAuth
-from starlette.config import Config
+from src.config import config
 
-REFRESH_TOKEN_EXPIRY = 2
-GOOGLE_CLIENT_ID = config.GOOGLE_CLIENT_ID
-GOOGLE_CLIENT_SECRET = config.GOOGLE_CLIENT_SECRET
-GOOGLE_REDIRECT_URI = config.GOOGLE_REDIRECT_URI
+from .schemas import TokenPayload
 
-config_data = {
-    "GOOGLE_CLIENT_ID": GOOGLE_CLIENT_ID,
-    "GOOGLE_CLIENT_SECRET": GOOGLE_CLIENT_SECRET,
-}
-
-starlette_config = Config(environ=config_data)
-
-oauth = OAuth(starlette_config)
-
-oauth.register(
-    name="google",
-    # client_id=GOOGLE_CLIENT_ID,
-    # client_secret=GOOGLE_CLIENT_SECRET,
-    server_metadata_url="https://accounts.google.com/.well-known/openid-configuration",
-    client_kwargs={
-        "scope": "openid email profile",
-        "redirect_url": GOOGLE_REDIRECT_URI,
-    },
-)
-
-oauth_bearer = OAuth2PasswordBearer(tokenUrl="/token")
 jwt_secret_key = config.JWT_SECRET
 jwt_algorithm = config.JWT_ALGORITHM
-ACCESS_TOKEN_EXPIRY = 3600
+ACCESS_TOKEN_EXPIRY = timedelta(minutes=30)
+REFRESH_TOKEN_EXPIRY = timedelta(days=30)
+
+password_hasher = PasswordHasher()
 
 
 def hash_password(password: str) -> str:
-    digest = hashlib.sha256(password.encode("utf-8")).digest()
-    hashed = bcrypt.hashpw(digest, bcrypt.gensalt())
-    return hashed.decode("utf-8")
+    return password_hasher.hash(password)
 
 
-def verify_password(pasword: str, hashed: str) -> bool:
-    digest = hashlib.sha256(pasword.encode("utf-8")).digest()
-    return bcrypt.checkpw(digest, hashed.encode("utf-8"))
-
-
-def create_access_token(
-    data: dict,
-    expiry: timedelta = timedelta(seconds=ACCESS_TOKEN_EXPIRY),
-    refresh: bool = False,
-):
-    now = datetime.now(timezone.utc)
-    payload = {}
-
-    payload["user"] = data
-    payload["exp"] = now + expiry
-    payload["jti"] = str(uuid.uuid4())
-    payload["refresh"] = refresh
-    payload["iat"] = now
-
-    token = jwt.encode(payload=payload, key=jwt_secret_key, algorithm=jwt_algorithm)
-    return token
-
-
-def decode_token(token: str) -> dict | None:
+def verify_password(password: str, hashed: str) -> bool:
     try:
-        token_data = jwt.decode(token, key=jwt_secret_key, algorithms=[jwt_algorithm])
-        return token_data
-    except jwt.PyJWTError as e:
+        return password_hasher.verify(hashed, password)
+    except VerificationError:
+        return False
+
+
+def generate_refresh_token() -> str:
+    return secrets.token_urlsafe(32)
+
+
+def hash_refresh_token(token: str) -> str:
+    return hashlib.sha256(token.encode("utf-8")).hexdigest()
+
+
+def create_access_token(user_id: uuid.UUID, session_id: uuid.UUID) -> str:
+    now = datetime.now(timezone.utc)
+    expiry = now + ACCESS_TOKEN_EXPIRY
+
+    payload = {
+        "sub": str(user_id),
+        "sid": str(session_id),
+        "type": "access",
+        "iat": int(now.timestamp()),
+        "exp": int(expiry.timestamp()),
+        "jti": str(uuid.uuid4()),
+    }
+
+    return jwt.encode(payload=payload, key=jwt_secret_key, algorithm=jwt_algorithm)
+
+
+def decode_token(token: str) -> TokenPayload | None:
+    try:
+        raw_payload = jwt.decode(token, key=jwt_secret_key, algorithms=[jwt_algorithm])
+        return TokenPayload(**raw_payload)
+    except (jwt.PyJWTError, ValidationError) as e:
         logging.exception(e)
-
-
-def get_tokens(user):
-    access_token = create_access_token(
-        data={"email": user.email, "user_id": str(user.id), "role": user.role},
-        expiry=timedelta(days=7),
-    )
-    refresh_token = create_access_token(
-        data={"email": user.email, "user_id": str(user.id), "role": user.role},
-        expiry=timedelta(days=REFRESH_TOKEN_EXPIRY),
-        refresh=True,
-    )
-
-    return access_token, refresh_token
+        return None

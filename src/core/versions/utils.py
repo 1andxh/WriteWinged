@@ -1,14 +1,12 @@
+import uuid
+
 from src.core.documents import DocumentORM
 from src.core.documents.models import DocumentState
+from src.core.versions.models import VersionORM
 from src.exceptions import (
-    DocumentNotFound,
     DocumentNotMutable,
-    VersionDoesNotExist,
     VersionMismatch,
 )
-from src.core.versions.models import VersionORM
-import uuid
-from typing import TypeGuard
 
 
 def can_author_version(document: DocumentORM):

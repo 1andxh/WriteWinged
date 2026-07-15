@@ -15,9 +15,8 @@ WriteWinged is a collaborative writing backend inspired by software-style workfl
 ### Authentication and Users
 
 - Email/password registration and login
-- Google OAuth login
-- JWT access/refresh tokens
-- Email verification and password reset flows
+- JWT bearer access tokens
+- Google OAuth, email verification, and password reset are deferred until after the MVP deploy
 
 ### Documents
 
@@ -40,14 +39,13 @@ WriteWinged is a collaborative writing backend inspired by software-style workfl
 ## Tech Stack
 
 - FastAPI
-- SQLAlchemy/SQLModel
+- SQLAlchemy
 - PostgreSQL
-- Redis
 - Alembic
 - uv (dependency and environment management)
 
 ## Status
 
-Yet to deploy
+MVP backend cleanup in progress. Current deployment target is a small FastAPI + PostgreSQL setup.
 
 This project is part of my journey learning backend development with FastAPI. It reflects a deep exploration of backend architecture, domain modeling, and professional engineering practices using FastAPI and SQLAlchemy.

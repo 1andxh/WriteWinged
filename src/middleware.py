@@ -1,22 +1,22 @@
-from fastapi import FastAPI, Request
-from fastapi.middleware.trustedhost import TrustedHostMiddleware
-from starlette.middleware.sessions import SessionMiddleware
-from .config import config
 import logging
 
-secret_key = config.MIDDLEWARE_SECRET
+from fastapi import FastAPI, Request
+from fastapi.middleware.trustedhost import TrustedHostMiddleware
+
+from .config import config
 
 logger = logging.getLogger("uvicorn.access")
 
 
 def register_middleware(app: FastAPI):
+    allowed_hosts = [
+        host.strip() for host in config.ALLOWED_HOSTS.split(",") if host.strip()
+    ]
+
     app.add_middleware(
         TrustedHostMiddleware,
-        www_redirect=True,
-        allowed_hosts=["localhost", "127.0.0.1", "127.0.0.1:6379"],
+        allowed_hosts=allowed_hosts,
     )
-
-    app.add_middleware(SessionMiddleware, secret_key)  # required for OAuth to work
 
     @app.middleware("http")
     async def get_request_info(request: Request, call_next):

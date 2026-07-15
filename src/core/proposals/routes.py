@@ -1,14 +1,16 @@
-from fastapi import APIRouter, Depends, status
-from .schemas import ProposalResponse, ProposalCreate, UpdateProposalState, ProposalList
+from typing import Annotated
 from uuid import UUID
+
+from fastapi import APIRouter, Depends, status
+
 from src.auth.dependencies import get_current_user
 from src.auth.models import User
-from typing import Annotated
-from .services import ProposalService
-from .dependency import get_proposal_service
 from src.core.proposals.models import ProposalState
 from src.exceptions import ProposalNotFound
 
+from .dependency import get_proposal_service
+from .schemas import ProposalCreate, ProposalList, ProposalResponse, UpdateProposalState
+from .services import ProposalService
 
 proposal_router = APIRouter()
 user = Annotated[User, Depends(get_current_user)]
@@ -53,7 +55,9 @@ async def get_proposal(
     current_user: user,
     service: proposal_service,
 ):
-    proposal = await service.get_proposal(proposal_id=proposal_id, actor_id=current_user.id)
+    proposal = await service.get_proposal(
+        proposal_id=proposal_id, actor_id=current_user.id
+    )
     if proposal.document_id != document_id:
         raise ProposalNotFound()
     return proposal
@@ -67,7 +71,9 @@ async def update_proposal_state(
     current_user: user,
     service: proposal_service,
 ) -> None:
-    proposal = await service.get_proposal(proposal_id=proposal_id, actor_id=current_user.id)
+    proposal = await service.get_proposal(
+        proposal_id=proposal_id, actor_id=current_user.id
+    )
     if proposal.document_id != document_id:
         raise ProposalNotFound()
     if payload.state == ProposalState.ACCEPTED:
@@ -87,7 +93,9 @@ async def merge_proposal(
     current_user: user,
     service: proposal_service,
 ):
-    proposal = await service.get_proposal(proposal_id=proposal_id, actor_id=current_user.id)
+    proposal = await service.get_proposal(
+        proposal_id=proposal_id, actor_id=current_user.id
+    )
     if proposal.document_id != document_id:
         raise ProposalNotFound()
     await service.merge_proposal(proposal_id=proposal_id, actor_id=current_user.id)

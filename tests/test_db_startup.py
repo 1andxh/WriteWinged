@@ -100,20 +100,6 @@ def test_config_startup_retry_defaults():
         JWT_SECRET="secret",
         JWT_ALGORITHM="HS256",
         API_VERSION="v1",
-        GOOGLE_CLIENT_ID="client",
-        GOOGLE_CLIENT_SECRET="secret",
-        GOOGLE_REDIRECT_URI="https://example.com/auth/google",
-        MIDDLEWARE_SECRET="middleware",
-        REDIS_URL="redis://redis:6379/0",
-        MAIL_USERNAME="mail-user",
-        MAIL_PASSWORD="mail-pass",
-        MAIL_PORT=587,
-        MAIL_SERVER="smtp.example.com",
-        MAIL_FROM="noreply@example.com",
-        MAIL_FROM_NAME="WriteWinged",
-        DOMAIN="example.com",
-        EMAIL_SECRET="email-secret",
-        PASSWORD_RESET_SECRET="reset-secret",
     )
 
     assert cfg.DB_STARTUP_MAX_WAIT_SECONDS == 30
@@ -129,20 +115,6 @@ def test_config_startup_retry_overrides():
         JWT_SECRET="secret",
         JWT_ALGORITHM="HS256",
         API_VERSION="v1",
-        GOOGLE_CLIENT_ID="client",
-        GOOGLE_CLIENT_SECRET="secret",
-        GOOGLE_REDIRECT_URI="https://example.com/auth/google",
-        MIDDLEWARE_SECRET="middleware",
-        REDIS_URL="redis://redis:6379/0",
-        MAIL_USERNAME="mail-user",
-        MAIL_PASSWORD="mail-pass",
-        MAIL_PORT=587,
-        MAIL_SERVER="smtp.example.com",
-        MAIL_FROM="noreply@example.com",
-        MAIL_FROM_NAME="WriteWinged",
-        DOMAIN="example.com",
-        EMAIL_SECRET="email-secret",
-        PASSWORD_RESET_SECRET="reset-secret",
     )
 
     assert cfg.DB_STARTUP_MAX_WAIT_SECONDS == 45

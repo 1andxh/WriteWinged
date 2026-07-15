@@ -1,24 +1,23 @@
-from fastapi import Depends
+import uuid
+from datetime import datetime, timezone
+
+from sqlalchemy import desc, select
+
 from src.core.documents import DocumentORM
 from src.core.documents.models import DocumentState
-from sqlalchemy import select, desc
-from sqlalchemy.ext.asyncio import AsyncSession
-from src.db.dependency import session
-import uuid
 from src.core.documents.service import DocumentService
-from src.core.documents.dependency import get_document_service
+from src.db.dependency import session
 from src.exceptions import (
+    ContributionAlreadyExists,
+    ContributionAlreadyRevoked,
+    ContributionNotFound,
     DocumentNotFound,
     DocumentPermissionDenied,
-    ContributionAlreadyExists,
     InvalidContributionTarget,
-    ContributionNotFound,
-    ContributionAlreadyRevoked,
     InvalidDocumentState,
 )
+
 from .models import ContributionORM
-from datetime import datetime, timezone
-from typing import Annotated
 
 # nts: borrowing another class? just add to __init__ and create an instance
 
@@ -75,9 +74,7 @@ class ContributionService:
     ) -> None:
 
         statement = (
-            select(DocumentORM)
-            .where(DocumentORM.id == document_id)
-            .with_for_update(nowait=True)
+            select(DocumentORM).where(DocumentORM.id == document_id).with_for_update()
         )
         result = await self.session.execute(statement)
         document = result.scalar_one_or_none()

@@ -1,20 +1,19 @@
-from fastapi import APIRouter, Depends, status, Query
+import uuid
+from typing import Annotated
+
+from fastapi import APIRouter, Depends, Query, status
+
+from ...auth.dependencies import get_current_user
+from ...auth.models import User
+from ...exceptions import DocumentPermissionDenied
+from .dependency import get_document_service
 from .schemas import (
-    DocumentResponse,
     DocumentCreateRequest,
     DocumentReadResponse,
     DocumentRenameRequest,
+    DocumentResponse,
 )
 from .service import DocumentService, DocumentVisibility
-import uuid
-from ...auth.dependencies import get_current_user
-from ...auth.models import User
-from typing import Annotated
-from sqlalchemy.ext.asyncio import AsyncSession
-from .dependency import get_document_service
-from ...db.dependency import session
-from ...exceptions import DocumentNotFound, DocumentPermissionDenied, DocumentNotMutable
-
 
 document_router = APIRouter()
 document_service = Annotated[DocumentService, Depends(get_document_service)]
@@ -48,16 +47,6 @@ async def list_user_documents(
     return documents
 
 
-@document_router.get("/{document_id}", response_model=DocumentReadResponse)
-async def get_document(document_id: uuid.UUID, service: document_service, user: user):
-    document = await service.get_document(document_id=document_id)
-    if document.visibility == DocumentVisibility.PRIVATE:
-        if document.owner_id != user.id:
-            raise DocumentPermissionDenied()
-
-    return document
-
-
 @document_router.get("/archive", response_model=list[DocumentReadResponse])
 async def get_archived_documents(
     service: document_service,
@@ -70,6 +59,18 @@ async def get_archived_documents(
     return await service.get_archived_documents(
         actor_id=user.id, search_query=q, limit=limit, offset=offset
     )
+
+
+@document_router.get("/{document_id}", response_model=DocumentReadResponse)
+async def get_document(document_id: uuid.UUID, service: document_service, user: user):
+    document = await service.get_document(document_id=document_id)
+    if (
+        document.visibility == DocumentVisibility.PRIVATE
+        and document.owner_id != user.id
+    ):
+        raise DocumentPermissionDenied()
+
+    return document
 
 
 @document_router.post(
@@ -105,7 +106,7 @@ async def archive_document(
     return document
 
 
-@document_router.delete("/{document_id}/", status_code=status.HTTP_204_NO_CONTENT)
+@document_router.delete("/{document_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_document(
     document_id: uuid.UUID, service: document_service, user: user
 ):

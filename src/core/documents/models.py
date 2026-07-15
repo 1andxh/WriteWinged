@@ -1,32 +1,21 @@
-# from __future__ import annotations
 import uuid
-from datetime import datetime, timezone
+from datetime import datetime
 from enum import Enum
-from typing import Optional, List, TYPE_CHECKING
-from sqlmodel import SQLModel, Field, Relationship
-from sqlalchemy import (
-    Column,
-    Enum as SAEnum,
-    String,
-    Text,
-    DateTime,
-    ForeignKey,
-    func,
-    Index,
-)
-import sqlalchemy.dialects.postgresql as pg
-from sqlalchemy.orm import Mapped, mapped_column, relationship
-from src.db.base import Base
+from typing import TYPE_CHECKING, Optional
 
-# from src.core.versions import VersionORM
-# from src.auth.models import User
+import sqlalchemy.dialects.postgresql as pg
+from sqlalchemy import DateTime, ForeignKey, Index, String, func
+from sqlalchemy import Enum as SAEnum
+from sqlalchemy.orm import Mapped, mapped_column, relationship
+
+from src.db.base import Base
 
 # using type check pattern
 if TYPE_CHECKING:
-    from src.core.versions import VersionORM
     from src.auth.models import User
     from src.core.contributions import ContributionORM
     from src.core.proposals import ProposalORM
+    from src.core.versions import VersionORM
 
 
 class DocumentVisibility(str, Enum):
@@ -118,11 +107,6 @@ class DocumentORM(Base):
         foreign_keys=[draft_version_id], post_update=True
     )
     owner: Mapped["User"] = relationship(back_populates="documents")
-
-    @property
-    def contributors(self) -> list["ContributionORM"]:
-
-        return self.contributions
 
     __table_args__ = (
         Index(

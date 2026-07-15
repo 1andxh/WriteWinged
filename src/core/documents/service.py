@@ -1,17 +1,18 @@
-from ...db.dependency import session
+import uuid
+from datetime import datetime, timezone
+
+from sqlalchemy import desc, select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, desc
-from .models import DocumentORM, DocumentState, DocumentVisibility
+
 from ...exceptions import (
-    DocumentPermissionDenied,
     DocumentNotFound,
     DocumentNotMutable,
+    DocumentPermissionDenied,
     DocumentTitleConflict,
-    InvalidDocumentState,
 )
-from datetime import datetime, timezone
-from sqlalchemy.exc import IntegrityError
-import uuid
+from .models import DocumentORM, DocumentState, DocumentVisibility
+
 
 class DocumentService:
 
@@ -80,7 +81,7 @@ class DocumentService:
 
     async def get_document(self, document_id) -> DocumentORM:
         statement = select(DocumentORM).where(
-            DocumentORM.id == document_id, DocumentORM.deleted_at == None
+            DocumentORM.id == document_id, DocumentORM.deleted_at.is_(None)
         )
         result = await self.session.execute(statement)
         document = result.scalar_one_or_none()

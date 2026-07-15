@@ -1,5 +1,4 @@
 from fastapi import status
-from starlette.status import HTTP_400_BAD_REQUEST, HTTP_401_UNAUTHORIZED
 
 
 class WriteWingedException(Exception):

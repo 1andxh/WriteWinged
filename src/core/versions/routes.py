@@ -1,19 +1,19 @@
-from fastapi import APIRouter, status, Depends
-from ...auth.dependencies import get_current_user
-from ...db.dependency import get_session
-from sqlalchemy.ext.asyncio import AsyncSession
 import uuid
 from typing import Annotated
+
+from fastapi import APIRouter, Depends, status
+
 from src.auth.models import User
-from .service import VersionService
+
+from ...auth.dependencies import get_current_user
 from .dependency import get_version_service
-from src.core.documents.routes import document_router
 from .schemas import (
-    VersionPublishRequest,
     VersionCreate,
     VersionCreateResponse,
+    VersionPublishRequest,
     VersionRead,
 )
+from .service import VersionService
 
 version_router = APIRouter()
 # version_router = document_router

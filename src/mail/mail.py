@@ -1,7 +1,8 @@
-from fastapi_mail import FastMail, ConnectionConfig, MessageSchema, MessageType
-from src.config import config
 from pathlib import Path
-from typing import List
+
+from fastapi_mail import ConnectionConfig, FastMail, MessageSchema, MessageType
+
+from src.config import config
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 

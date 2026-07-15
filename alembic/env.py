@@ -6,16 +6,16 @@ from sqlalchemy.engine import Connection
 from sqlalchemy.ext.asyncio import async_engine_from_config
 
 from alembic import context
-from sqlmodel import SQLModel
-from src.db.base import Base
-from src.core.documents.models import DocumentORM
-from src.auth.models import User
-from src.core.versions.models import VersionORM
-from src.core.contributions import ContributionORM
+
+# Imported for their side effect of registering with Base.metadata so
+# autogenerate can see them - not referenced by name in this file.
+from src.auth.models import RefreshTokenORM, User, UserSessionORM
 from src.config import config
-
-# from src.core.documents.models import DocumentORM
-
+from src.core.contributions import ContributionORM
+from src.core.documents.models import DocumentORM
+from src.core.proposals.models import ProposalORM
+from src.core.versions.models import VersionORM
+from src.db.base import Base
 
 database_url = config.DATABASE_URL
 # this is the Alembic Config object, which provides
