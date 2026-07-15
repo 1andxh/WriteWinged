@@ -34,7 +34,7 @@ version = config.API_VERSION
 app = FastAPI(
     version=version,
     title="Write-Winged",
-    description="Collobarative writing",
+    description="Collaborative writing",
     lifespan=lifespan,
 )
 
@@ -45,6 +45,12 @@ app.add_exception_handler(Exception, general_exception_handler)
 
 # middleware
 register_middleware(app)
+
+
+@app.get("/health", tags=["health"])
+async def health_check():
+    return {"status": "ok"}
+
 
 app.include_router(auth_router, prefix=f"/api/auth", tags=["auth"])
 app.include_router(document_router, prefix=f"/api/documents", tags=["documents"])
