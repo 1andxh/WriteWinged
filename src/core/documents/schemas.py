@@ -30,4 +30,4 @@ class DocumentReadResponse(BaseModel):
     created_at: datetime
     updated_at: datetime
     versions: list[VersionRead]
-    contributors: list[ListContributor] = Field(default_factory=list)
+    contributions: list[ListContributor] = Field(default_factory=list)
