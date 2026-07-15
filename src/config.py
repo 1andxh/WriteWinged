@@ -10,9 +10,6 @@ class CustomBaseSettings(BaseSettings):
 class Config(CustomBaseSettings):
     DATABASE_URL: str
     SQL_ECHO: bool = False
-    ENVIRONMENT: str = "development"
-    DB_STARTUP_MAX_WAIT_SECONDS: int = 30
-    DB_STARTUP_RETRY_INTERVAL_SECONDS: int = 2
     JWT_SECRET: str
     JWT_ALGORITHM: str = "HS256"
     API_VERSION: str = "0.1.0"
