@@ -1,4 +1,4 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 import uuid
 from datetime import datetime
 
@@ -8,5 +8,7 @@ class AddContributorModel(BaseModel):
 
 
 class ListContributor(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
     contributor_id: uuid.UUID
     revoked_at: datetime | None
