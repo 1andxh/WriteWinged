@@ -5,17 +5,12 @@ from fastapi.testclient import TestClient
 
 from src import app
 from src.auth.models import UserRole
-from src.auth import routes as auth_routes
-from src.auth.utils import hash_password
+from src.auth.dependencies import get_auth_service, get_current_user, get_token_service
+from src.auth.service import AccessTokens
 from src.config import Config
 from src.core.documents.dependency import get_document_service
 from src.core.documents.models import DocumentState, DocumentVisibility
-from src.db.main import get_session
-from src.auth.dependencies import get_current_user
-
-
-async def fake_session():
-    yield object()
+from src.exceptions import RevokedTokenException
 
 
 def test_app_imports_with_minimal_mvp_config():
@@ -62,7 +57,7 @@ def test_document_static_routes_are_before_uuid_route():
     assert archive_index < detail_index
 
 
-def test_signup_accepts_password_and_does_not_return_hash(monkeypatch):
+def test_signup_accepts_password_and_does_not_return_hash():
     created_user = SimpleNamespace(
         id=uuid.uuid4(),
         username="writer",
@@ -71,17 +66,13 @@ def test_signup_accepts_password_and_does_not_return_hash(monkeypatch):
         is_verified=False,
     )
 
-    class FakeUserService:
-        async def check_user_exists(self, email, session):
-            return False
-
-        async def create_user(self, payload, session):
+    class FakeAuthService:
+        async def register(self, payload):
             assert payload.password == "secret123"
             assert not hasattr(payload, "password_hash")
             return created_user
 
-    monkeypatch.setattr(auth_routes, "user_service", FakeUserService())
-    app.dependency_overrides[get_session] = fake_session
+    app.dependency_overrides[get_auth_service] = lambda: FakeAuthService()
     client = TestClient(app)
 
     response = client.post(
@@ -102,20 +93,27 @@ def test_signup_accepts_password_and_does_not_return_hash(monkeypatch):
     assert "password_hash" not in body
 
 
-def test_login_returns_single_bearer_token(monkeypatch):
+def test_login_returns_access_and_refresh_tokens():
     login_user = SimpleNamespace(
-        id=uuid.uuid4(),
-        email="writer@example.com",
-        role=UserRole.USER,
-        password_hash=hash_password("secret123"),
+        id=uuid.uuid4(), email="writer@example.com", role=UserRole.USER
     )
 
-    class FakeUserService:
-        async def get_user_by_email(self, email, session):
+    class FakeAuthService:
+        async def authenticate(self, email, password):
+            assert email == "writer@example.com"
+            assert password == "secret123"
             return login_user
 
-    monkeypatch.setattr(auth_routes, "user_service", FakeUserService())
-    app.dependency_overrides[get_session] = fake_session
+    class FakeTokenService:
+        async def issue_token_pair(self, user, user_agent=None, ip_address=None):
+            assert user is login_user
+            return AccessTokens(
+                access_token="issued-access-token",
+                refresh_token="issued-refresh-token",
+            )
+
+    app.dependency_overrides[get_auth_service] = lambda: FakeAuthService()
+    app.dependency_overrides[get_token_service] = lambda: FakeTokenService()
     client = TestClient(app)
 
     response = client.post(
@@ -128,8 +126,68 @@ def test_login_returns_single_bearer_token(monkeypatch):
     assert response.status_code == 200
     body = response.json()
     assert body["token_type"] == "bearer"
-    assert body["access_token"]
-    assert "refresh_token" not in body
+    assert body["access_token"] == "issued-access-token"
+    assert body["refresh_token"] == "issued-refresh-token"
+
+
+def test_refresh_route_rotates_token():
+    class FakeTokenService:
+        async def refresh_tokens(self, raw_refresh_token):
+            assert raw_refresh_token == "old-refresh-token"
+            return AccessTokens(
+                access_token="new-access-token", refresh_token="new-refresh-token"
+            )
+
+    app.dependency_overrides[get_token_service] = lambda: FakeTokenService()
+    client = TestClient(app)
+
+    response = client.post(
+        "/api/auth/refresh", json={"refresh_token": "old-refresh-token"}
+    )
+
+    app.dependency_overrides.clear()
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["access_token"] == "new-access-token"
+    assert body["refresh_token"] == "new-refresh-token"
+
+
+def test_refresh_route_rejects_reused_token():
+    class FakeTokenService:
+        async def refresh_tokens(self, raw_refresh_token):
+            raise RevokedTokenException()
+
+    app.dependency_overrides[get_token_service] = lambda: FakeTokenService()
+    client = TestClient(app)
+
+    response = client.post(
+        "/api/auth/refresh", json={"refresh_token": "stolen-token"}
+    )
+
+    app.dependency_overrides.clear()
+
+    assert response.status_code == 401
+
+
+def test_logout_route_revokes_token():
+    revoked = []
+
+    class FakeTokenService:
+        async def logout(self, raw_refresh_token):
+            revoked.append(raw_refresh_token)
+
+    app.dependency_overrides[get_token_service] = lambda: FakeTokenService()
+    client = TestClient(app)
+
+    response = client.post(
+        "/api/auth/logout", json={"refresh_token": "some-refresh-token"}
+    )
+
+    app.dependency_overrides.clear()
+
+    assert response.status_code == 204
+    assert revoked == ["some-refresh-token"]
 
 
 def test_document_routes_call_service_with_frontend_friendly_shapes():
@@ -146,7 +204,7 @@ def test_document_routes_call_service_with_frontend_friendly_shapes():
             created_at="2026-06-02T00:00:00Z",
             updated_at="2026-06-02T00:00:00Z",
             versions=[],
-            contributors=[],
+            contributions=[],
         )
 
     class FakeDocumentService:
