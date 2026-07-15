@@ -1,47 +1,62 @@
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, status
-from fastapi.responses import JSONResponse
+from fastapi import APIRouter, Depends, Request, status
 
-from ..db.dependency import session
-from ..exceptions import InvalidCredentialsException, UserAlreadyExistsException
-from .dependencies import get_current_user
+from .dependencies import auth_service, get_current_user, token_service
 from .models import User
-from .schemas import TokenResponse, UserCreateModel, UserLogin, UserResponse
-from .service import UserService
-from .utils import get_access_token, verify_password
+from .schemas import (
+    RefreshTokenRequest,
+    TokenResponse,
+    UserCreateModel,
+    UserLogin,
+    UserResponse,
+)
 
 
 auth_router = APIRouter()
-user_service = UserService()
 current_user = Annotated[User, Depends(get_current_user)]
 
 
 @auth_router.post(
     "/signup", response_model=UserResponse, status_code=status.HTTP_201_CREATED
 )
-async def create_user_account(user: UserCreateModel, session: session):
-    user_exists = await user_service.check_user_exists(user.email, session)
-    if user_exists:
-        raise UserAlreadyExistsException(user.email)
-
-    return await user_service.create_user(user, session)
+async def create_user_account(payload: UserCreateModel, auth_service: auth_service):
+    return await auth_service.register(payload)
 
 
 @auth_router.post("/login", response_model=TokenResponse)
-async def login(login: UserLogin, session: session):
-    user = await user_service.get_user_by_email(login.email, session)
-    if user is None or user.password_hash is None:
-        raise InvalidCredentialsException()
-
-    if not verify_password(login.password, user.password_hash):
-        raise InvalidCredentialsException()
-
-    access_token = get_access_token(user)
-    return JSONResponse(
-        content={"token_type": "bearer", "access_token": access_token},
-        status_code=status.HTTP_200_OK,
+async def login(
+    payload: UserLogin,
+    request: Request,
+    auth_service: auth_service,
+    token_service: token_service,
+):
+    user = await auth_service.authenticate(payload.email, payload.password)
+    tokens = await token_service.issue_token_pair(
+        user,
+        user_agent=request.headers.get("User-Agent"),
+        ip_address=request.client.host if request.client else None,
     )
+    return TokenResponse(
+        token_type="bearer",
+        access_token=tokens.access_token,
+        refresh_token=tokens.refresh_token,
+    )
+
+
+@auth_router.post("/refresh", response_model=TokenResponse)
+async def refresh_token(payload: RefreshTokenRequest, token_service: token_service):
+    tokens = await token_service.refresh_tokens(payload.refresh_token)
+    return TokenResponse(
+        token_type="bearer",
+        access_token=tokens.access_token,
+        refresh_token=tokens.refresh_token,
+    )
+
+
+@auth_router.post("/logout", status_code=status.HTTP_204_NO_CONTENT)
+async def logout(payload: RefreshTokenRequest, token_service: token_service) -> None:
+    await token_service.logout(payload.refresh_token)
 
 
 @auth_router.get("/me", response_model=UserResponse)
