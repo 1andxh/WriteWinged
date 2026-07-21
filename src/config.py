@@ -19,6 +19,7 @@ class Config(CustomBaseSettings):
     GOOGLE_CLIENT_ID: str | None = None
     GOOGLE_CLIENT_SECRET: str | None = None
     GOOGLE_REDIRECT_URI: str | None = None
+    MIDDLEWARE_SECRET: str | None = None
     REDIS_URL: str | None = None
     MAIL_USERNAME: str | None = None
     MAIL_PASSWORD: str | None = None
