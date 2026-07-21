@@ -43,7 +43,11 @@ def test_list_comments_route_returns_wrapper_shape():
     comment = make_comment_response(proposal_id=proposal_id)
 
     class FakeCommentService:
-        async def list_comments(self, document_id, proposal_id, actor_id):
+        async def list_comments(
+            self, document_id, proposal_id, actor_id, limit, offset
+        ):
+            assert limit == 20
+            assert offset == 0
             return CommentListResponse(comments=[comment], total=1, resolved_count=0)
 
     app.dependency_overrides[get_current_user] = fake_user
@@ -61,6 +65,34 @@ def test_list_comments_route_returns_wrapper_shape():
     assert body["total"] == 1
     assert body["resolved_count"] == 0
     assert body["comments"][0]["text"] == "Looks good"
+
+
+def test_list_comments_route_passes_through_pagination_params():
+    document_id = uuid.uuid4()
+    proposal_id = uuid.uuid4()
+    seen = {}
+
+    class FakeCommentService:
+        async def list_comments(
+            self, document_id, proposal_id, actor_id, limit, offset
+        ):
+            seen["limit"] = limit
+            seen["offset"] = offset
+            return CommentListResponse(comments=[], total=0, resolved_count=0)
+
+    app.dependency_overrides[get_current_user] = fake_user
+    app.dependency_overrides[get_comment_service] = lambda: FakeCommentService()
+    client = TestClient(app)
+
+    response = client.get(
+        f"/api/documents/{document_id}/proposals/{proposal_id}/comments",
+        params={"limit": 5, "offset": 10},
+    )
+
+    app.dependency_overrides.clear()
+
+    assert response.status_code == 200
+    assert seen == {"limit": 5, "offset": 10}
 
 
 def test_create_comment_route_returns_created_comment():
