@@ -18,9 +18,10 @@ from src.exceptions import (
 
 
 class DummyResult:
-    def __init__(self, one=None, scalars_list=None):
+    def __init__(self, one=None, scalars_list=None, row=None):
         self._one = one
         self._scalars_list = scalars_list or []
+        self._row = row
 
     def scalar_one_or_none(self):
         return self._one
@@ -30,6 +31,9 @@ class DummyResult:
 
     def all(self):
         return self._scalars_list
+
+    def one(self):
+        return self._row
 
 
 class QueueSession:
@@ -497,6 +501,7 @@ async def test_list_comments_returns_counts_for_owner():
             DummyResult(one=proposal),
             DummyResult(one=document),
             DummyResult(one=None),
+            DummyResult(row=(2, 1)),
             DummyResult(scalars_list=[c1, c2]),
         ]
     )
@@ -509,3 +514,34 @@ async def test_list_comments_returns_counts_for_owner():
     assert result.total == 2
     assert result.resolved_count == 1
     assert {c.id for c in result.comments} == {c1.id, c2.id}
+
+
+@pytest.mark.asyncio
+async def test_list_comments_paginates_and_reports_full_totals():
+    owner = make_user("owner")
+    document = make_document(owner.id)
+    proposal = make_proposal(document.id, owner.id)
+    page_comment = make_comment(proposal.id, owner)
+
+    session = QueueSession(
+        results=[
+            DummyResult(one=proposal),
+            DummyResult(one=document),
+            DummyResult(one=None),
+            DummyResult(row=(37, 5)),
+            DummyResult(scalars_list=[page_comment]),
+        ]
+    )
+    service = CommentService(session)
+
+    result = await service.list_comments(
+        document_id=document.id,
+        proposal_id=proposal.id,
+        actor_id=owner.id,
+        limit=20,
+        offset=20,
+    )
+
+    assert result.total == 37
+    assert result.resolved_count == 5
+    assert len(result.comments) == 1
