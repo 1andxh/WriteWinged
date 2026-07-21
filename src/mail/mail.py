@@ -6,7 +6,6 @@ from src.config import config
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-
 mail_config = ConnectionConfig(
     MAIL_USERNAME=config.MAIL_USERNAME,
     MAIL_PASSWORD=config.MAIL_PASSWORD,
@@ -24,8 +23,7 @@ mail_config = ConnectionConfig(
 mail = FastMail(config=mail_config)
 
 
-def create_message(recepients, subject: str, body: str):
-    message = MessageSchema(
-        recipients=recepients, subject=subject, body=body, subtype=MessageType.html
+def create_message(recipients, subject: str, body: str) -> MessageSchema:
+    return MessageSchema(
+        recipients=recipients, subject=subject, body=body, subtype=MessageType.html
     )
-    return message
