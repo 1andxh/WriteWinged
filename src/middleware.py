@@ -2,6 +2,7 @@ import logging
 
 from fastapi import FastAPI, Request
 from fastapi.middleware.trustedhost import TrustedHostMiddleware
+from starlette.middleware.sessions import SessionMiddleware
 
 from .config import config
 
@@ -16,6 +17,11 @@ def register_middleware(app: FastAPI):
     app.add_middleware(
         TrustedHostMiddleware,
         allowed_hosts=allowed_hosts,
+    )
+
+    app.add_middleware(
+        SessionMiddleware,
+        secret_key=config.MIDDLEWARE_SECRET or config.JWT_SECRET,
     )
 
     @app.middleware("http")
