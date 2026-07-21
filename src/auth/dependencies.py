@@ -5,6 +5,8 @@ from fastapi.security import HTTPBearer
 from fastapi.security.http import HTTPAuthorizationCredentials
 
 from src.db.dependency import session
+from src.mail.dependency import get_mail_service
+from src.mail.service import MailService
 
 from ..exceptions import InvalidCredentialsException, InvalidTokenException
 from .models import User, UserSessionORM
@@ -33,6 +35,8 @@ async def get_auth_service(session: session, user_service: user_service) -> Auth
 
 
 auth_service = Annotated[AuthService, Depends(get_auth_service)]
+
+mail_service = Annotated[MailService, Depends(get_mail_service)]
 
 
 async def get_session_service(session: session) -> SessionService:
