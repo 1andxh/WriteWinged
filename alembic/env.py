@@ -11,6 +11,7 @@ from alembic import context
 # autogenerate can see them - not referenced by name in this file.
 from src.auth.models import RefreshTokenORM, User, UserSessionORM
 from src.config import config
+from src.core.comments.models import CommentORM
 from src.core.contributions import ContributionORM
 from src.core.documents.models import DocumentORM
 from src.core.proposals.models import ProposalORM
