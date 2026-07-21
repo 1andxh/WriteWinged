@@ -5,6 +5,7 @@ from fastapi import FastAPI
 
 from src.auth.routes import auth_router
 from src.config import config
+from src.core.comments.routes import comment_router
 from src.core.contributions.routes import contributions_router
 from src.core.documents.routes import document_router
 from src.core.proposals.routes import proposal_router
@@ -33,7 +34,7 @@ version = config.API_VERSION
 
 app = FastAPI(
     version=version,
-    title="Write-Winged",
+    title="Limarr-API",
     description="Collaborative writing",
     lifespan=lifespan,
 )
@@ -59,3 +60,4 @@ app.include_router(
     contributions_router, prefix="/api/documents", tags=["contributions"]
 )
 app.include_router(proposal_router, prefix="/api/documents", tags=["proposals"])
+app.include_router(comment_router, prefix="/api/documents", tags=["comments"])
