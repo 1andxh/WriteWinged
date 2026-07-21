@@ -1,7 +1,7 @@
 import uuid
 from datetime import datetime, timezone
 
-from sqlalchemy import select
+from sqlalchemy import func, select
 
 from src.auth.models import User
 from src.core.contributions import ContributionORM
@@ -77,22 +77,37 @@ class CommentService:
             raise DocumentPermissionDenied()
 
     async def list_comments(
-        self, document_id: uuid.UUID, proposal_id: uuid.UUID, actor_id: uuid.UUID
+        self,
+        document_id: uuid.UUID,
+        proposal_id: uuid.UUID,
+        actor_id: uuid.UUID,
+        limit: int = 20,
+        offset: int = 0,
     ) -> CommentListResponse:
         proposal = await self._get_proposal(document_id, proposal_id)
         document = await self._get_document(proposal.document_id)
         await self._ensure_can_view(document, actor_id)
 
+        # total/resolved_count reflect the whole thread, not just this page.
+        count_result = await self.session.execute(
+            select(
+                func.count(CommentORM.id),
+                func.count(CommentORM.id).filter(CommentORM.resolved.is_(True)),
+            ).where(CommentORM.proposal_id == proposal_id)
+        )
+        total, resolved_count = count_result.one()
+
         result = await self.session.execute(
             select(CommentORM)
             .where(CommentORM.proposal_id == proposal_id)
             .order_by(CommentORM.created_at)
+            .limit(limit)
+            .offset(offset)
         )
         comments = list(result.scalars().all())
-        resolved_count = sum(1 for c in comments if c.resolved)
         return CommentListResponse(
             comments=[CommentResponse.from_comment(c) for c in comments],
-            total=len(comments),
+            total=total,
             resolved_count=resolved_count,
         )
 
