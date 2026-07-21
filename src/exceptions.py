@@ -217,3 +217,11 @@ class ProposalAlreadyMerged(DocumentError):
 
     def __init__(self, message: str = "Proposal already merged"):
         super().__init__(message, status_code=status.HTTP_409_CONFLICT)
+
+
+# COMMENT EXCEPTIONS
+class CommentNotFound(DocumentError):
+    """Raised when a comment is not found"""
+
+    def __init__(self, message: str = "Comment not found"):
+        super().__init__(message, status_code=status.HTTP_404_NOT_FOUND)
