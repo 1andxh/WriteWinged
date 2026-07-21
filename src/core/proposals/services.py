@@ -2,8 +2,9 @@ import uuid
 from datetime import datetime as dt
 from datetime import timezone
 
-from sqlalchemy import desc, select
+from sqlalchemy import desc, func, select
 
+from src.core.comments.models import CommentORM
 from src.core.contributions import ContributionORM
 from src.core.documents import DocumentORM
 from src.core.documents.models import DocumentState
@@ -55,6 +56,25 @@ class ProposalService:
         contribution = result.scalar_one_or_none()
         return contribution is not None
 
+    async def _attach_comment_counts(self, proposals: list[ProposalORM]) -> None:
+        if not proposals:
+            return
+        proposal_ids = [p.id for p in proposals]
+        result = await self.session.execute(
+            select(
+                CommentORM.proposal_id,
+                func.count(CommentORM.id),
+                func.count(CommentORM.id).filter(CommentORM.resolved.is_(True)),
+            )
+            .where(CommentORM.proposal_id.in_(proposal_ids))
+            .group_by(CommentORM.proposal_id)
+        )
+        counts = {row[0]: (row[1], row[2]) for row in result.all()}
+        for proposal in proposals:
+            total, resolved = counts.get(proposal.id, (0, 0))
+            proposal.comment_count = total
+            proposal.resolved_count = resolved
+
     async def create_proposal(
         self,
         document_id: uuid.UUID,
@@ -84,6 +104,9 @@ class ProposalService:
         self.session.add(proposal)
         await self.session.flush()
 
+        # A brand new proposal has no comments yet.
+        proposal.comment_count = 0
+        proposal.resolved_count = 0
         return proposal
 
     async def update_proposal(
@@ -181,6 +204,7 @@ class ProposalService:
         )
         if not (is_owner or is_author or is_contributor):
             raise DocumentPermissionDenied()
+        await self._attach_comment_counts([proposal])
         return proposal
 
     async def list_proposals(self, document_id: uuid.UUID, actor_id: uuid.UUID):
@@ -194,12 +218,14 @@ class ProposalService:
         if not (is_owner or is_contributor):
             raise DocumentPermissionDenied()
 
-        proposals = await self.session.execute(
+        result = await self.session.execute(
             select(ProposalORM)
             .where(ProposalORM.document_id == document_id)
             .order_by(desc(ProposalORM.created_at))
         )
-        return proposals.scalars().all()
+        proposals = list(result.scalars().all())
+        await self._attach_comment_counts(proposals)
+        return proposals
 
     async def merge_proposal(
         self, proposal_id: uuid.UUID, actor_id: uuid.UUID
