@@ -1,7 +1,7 @@
 from typing import Annotated
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, status
+from fastapi import APIRouter, Depends, Query, status
 
 from src.auth.dependencies import get_current_user
 from src.auth.models import User
@@ -20,10 +20,19 @@ comment_service = Annotated[CommentService, Depends(get_comment_service)]
     response_model=CommentListResponse,
 )
 async def list_comments(
-    document_id: UUID, proposal_id: UUID, current_user: user, service: comment_service
+    document_id: UUID,
+    proposal_id: UUID,
+    current_user: user,
+    service: comment_service,
+    limit: int = Query(20, le=100),
+    offset: int = Query(0, ge=0),
 ):
     return await service.list_comments(
-        document_id=document_id, proposal_id=proposal_id, actor_id=current_user.id
+        document_id=document_id,
+        proposal_id=proposal_id,
+        actor_id=current_user.id,
+        limit=limit,
+        offset=offset,
     )
 
 
