@@ -1,6 +1,6 @@
 import uuid
 
-from pydantic import BaseModel, ConfigDict, EmailStr, Field
+from pydantic import BaseModel, ConfigDict, EmailStr, Field, model_validator
 
 
 class UserResponse(BaseModel):
@@ -45,3 +45,28 @@ class TokenPayload(BaseModel):
     exp: int
     iat: int
     jti: str
+
+
+class GoogleUser(BaseModel):
+    sub: str
+    email: str
+    name: str
+
+
+class PasswordResetRequest(BaseModel):
+    email: EmailStr
+
+
+class PasswordResetConfirm(BaseModel):
+    new_password: str = Field(min_length=8, max_length=255)
+    confirm_new_password: str
+
+    @model_validator(mode="after")
+    def _passwords_match(self) -> "PasswordResetConfirm":
+        if self.new_password != self.confirm_new_password:
+            raise ValueError("Passwords do not match")
+        return self
+
+
+class MessageResponse(BaseModel):
+    message: str

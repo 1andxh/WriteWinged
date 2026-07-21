@@ -21,6 +21,8 @@ class ProposalResponse(BaseModel):
     content: str
     created_at: datetime
     merged_at: datetime | None
+    comment_count: int = 0
+    resolved_count: int = 0
 
 
 class ProposalList(ProposalResponse):

@@ -12,7 +12,7 @@ from ..exceptions import (
     RevokedTokenException,
     UserAlreadyExistsException,
 )
-from .schemas import UserCreateModel
+from .schemas import GoogleUser, UserCreateModel
 from .utils import (
     REFRESH_TOKEN_EXPIRY,
     create_access_token,
@@ -35,8 +35,18 @@ class UserService:
     async def get_user_by_id(self, user_id: uuid.UUID) -> User | None:
         return await self.session.get(User, user_id)
 
+    async def get_user_by_google_sub(self, google_sub: str) -> User | None:
+        statement = select(User).where(User.google_sub == google_sub)
+        result = await self.session.execute(statement)
+        return result.scalar_one_or_none()
+
     async def check_user_exists(self, email: str) -> bool:
         return await self.get_user_by_email(email) is not None
+
+    async def check_username_exists(self, username: str) -> bool:
+        statement = select(User).where(User.username == username)
+        result = await self.session.execute(statement)
+        return result.scalar_one_or_none() is not None
 
     async def create_user(self, payload: UserCreateModel) -> User:
         user_data = payload.model_dump()
@@ -54,6 +64,27 @@ class UserService:
 
         await self.session.flush()
         return user
+
+    async def set_password(self, user: User, new_password: str) -> User:
+        user.password_hash = hash_password(new_password)
+        await self.session.flush()
+        return user
+
+    async def create_google_user(self, google_user: GoogleUser) -> User:
+        username = google_user.name
+        if await self.check_username_exists(username):
+            username = f"{google_user.name} {google_user.sub[-6:]}"
+
+        new_user = User(
+            email=google_user.email,
+            username=username,
+            google_sub=google_user.sub,
+            role=UserRole.USER,
+            is_verified=True,
+        )
+        self.session.add(new_user)
+        await self.session.flush()
+        return new_user
 
 
 class AuthService:
@@ -73,6 +104,20 @@ class AuthService:
         if not verify_password(password, user.password_hash):
             raise InvalidCredentialsException()
         return user
+
+    async def authenticate_via_google(self, google_user: GoogleUser) -> User:
+        user = await self.user_service.get_user_by_google_sub(google_user.sub)
+        if user is not None:
+            return user
+
+        user = await self.user_service.get_user_by_email(google_user.email)
+        if user is not None:
+            user.google_sub = google_user.sub
+            user.is_verified = True
+            await self.session.flush()
+            return user
+
+        return await self.user_service.create_google_user(google_user)
 
 
 class SessionService:

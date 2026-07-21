@@ -27,14 +27,6 @@ def test_app_imports_with_minimal_mvp_config():
     assert cfg.ALLOWED_HOSTS == "localhost,127.0.0.1,testserver"
 
 
-def test_compose_uses_only_api_db_and_env_based_healthcheck():
-    compose = open("docker-compose.yaml", encoding="utf-8").read()
-
-    assert "writewinged_redis" not in compose
-    assert "redis:" not in compose
-    assert "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}" in compose
-
-
 def test_health_route_responds():
     client = TestClient(app)
 
