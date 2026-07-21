@@ -144,6 +144,7 @@ class CommentService:
         comment.author = actor
         self.session.add(comment)
         await self.session.flush()
+        await self.session.commit()
         return CommentResponse.from_comment(comment)
 
     async def update_comment(
@@ -185,6 +186,7 @@ class CommentService:
                 comment.resolved_by = None
 
         await self.session.flush()
+        await self.session.commit()
         return CommentResponse.from_comment(comment)
 
     async def delete_comment(
@@ -207,3 +209,4 @@ class CommentService:
 
         await self.session.delete(comment)
         await self.session.flush()
+        await self.session.commit()

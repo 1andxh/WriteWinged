@@ -63,6 +63,9 @@ class QueueSession:
     async def flush(self):
         return None
 
+    async def commit(self):
+        return None
+
 
 def make_user(username: str = "writer") -> User:
     return User(

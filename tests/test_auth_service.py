@@ -31,6 +31,9 @@ class QueueSession:
     async def flush(self):
         return None
 
+    async def commit(self):
+        return None
+
 
 def make_user(**overrides) -> User:
     fields = dict(
