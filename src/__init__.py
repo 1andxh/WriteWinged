@@ -20,6 +20,7 @@ from .exception_handler import (
 )
 from .middleware import register_middleware
 
+logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("writewinged.app")
 
 
