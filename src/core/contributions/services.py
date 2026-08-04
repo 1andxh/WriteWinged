@@ -3,6 +3,7 @@ from datetime import datetime, timezone
 
 from sqlalchemy import desc, select
 
+from src.auth.service import UserService
 from src.core.documents import DocumentORM
 from src.core.documents.models import DocumentState
 from src.core.documents.service import DocumentService
@@ -15,9 +16,11 @@ from src.exceptions import (
     DocumentPermissionDenied,
     InvalidContributionTarget,
     InvalidDocumentState,
+    UserNotFoundException,
 )
 
 from .models import ContributionORM
+from .schemas import ListContributor
 
 # nts: borrowing another class? just add to __init__ and create an instance
 
@@ -26,13 +29,18 @@ class ContributionService:
     def __init__(self, session: session) -> None:
         self.session = session
         self.doc_service = DocumentService(session)
+        self.user_service = UserService(session)
 
     def _is_owner(self, actor_id: uuid.UUID, document: DocumentORM) -> bool:
         return document.owner_id == actor_id
 
     async def add_contributor(
-        self, *, document_id: uuid.UUID, contributor_id: uuid.UUID, actor_id: uuid.UUID
-    ) -> ContributionORM:
+        self, *, document_id: uuid.UUID, email: str, actor_id: uuid.UUID
+    ) -> ListContributor:
+        target_user = await self.user_service.get_user_by_email(email)
+        if target_user is None:
+            raise UserNotFoundException()
+
         statement = (
             select(DocumentORM).where(DocumentORM.id == document_id).with_for_update()
         )
@@ -44,12 +52,12 @@ class ContributionService:
 
         if not self._is_owner(actor_id=actor_id, document=document):
             raise DocumentPermissionDenied()
-        if contributor_id == document.owner_id:
+        if target_user.id == document.owner_id:
             raise InvalidContributionTarget()
 
         statement = select(ContributionORM).where(
             ContributionORM.document_id == document_id,
-            ContributionORM.user_id == contributor_id,
+            ContributionORM.user_id == target_user.id,
         )
         result = await self.session.execute(statement)
         existing_contribution = result.scalar_one_or_none()
@@ -58,12 +66,14 @@ class ContributionService:
 
         contribution = ContributionORM(
             document_id=document.id,
-            user_id=contributor_id,
+            user_id=target_user.id,
             created_at=datetime.now(timezone.utc),
         )
+        contribution.user = target_user
         self.session.add(contribution)
         await self.session.flush()
-        return contribution
+        await self.session.commit()
+        return ListContributor.from_contribution(contribution)
 
     async def revoke_contributor(
         self,
@@ -102,12 +112,13 @@ class ContributionService:
         contribution.revoked_at = datetime.now(timezone.utc)
 
         await self.session.flush()
+        await self.session.commit()
 
     async def list_contributors(
         self,
         document_id: uuid.UUID,
         actor_id: uuid.UUID,
-    ) -> list[ContributionORM]:
+    ) -> list[ListContributor]:
         statement = select(DocumentORM).where(
             DocumentORM.id == document_id, DocumentORM.deleted_at.is_(None)
         )
@@ -133,11 +144,18 @@ class ContributionService:
 
         statement = await self.session.execute(
             select(ContributionORM)
-            .where(ContributionORM.document_id == document_id)
+            .where(
+                ContributionORM.document_id == document_id,
+                ContributionORM.revoked_at.is_(None),
+            )
             .order_by(desc(ContributionORM.created_at))
         )
         contributors = statement.scalars().all()
-        return list(contributors)
+
+        owner = await self.user_service.get_user_by_id(document.owner_id)
+        rows = [ListContributor.from_owner(document, owner)]
+        rows += [ListContributor.from_contribution(c) for c in contributors]
+        return rows
 
     # async def accept_contribution(self):
     #     pass
