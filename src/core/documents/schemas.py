@@ -64,7 +64,9 @@ class DocumentReadResponse(BaseModel):
 
 
 def _build_excerpt(content: str, limit: int = 200) -> str:
-    text = " ".join(line.lstrip("#").strip() for line in content.splitlines() if line.strip())
+    text = " ".join(
+        line.lstrip("#").strip() for line in content.splitlines() if line.strip()
+    )
     if len(text) <= limit:
         return text
     return text[:limit].rsplit(" ", 1)[0] + "…"

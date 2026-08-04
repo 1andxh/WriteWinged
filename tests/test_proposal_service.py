@@ -268,7 +268,9 @@ async def test_list_proposals_allows_reader_on_public_document():
     )
     service = ProposalService(session)
 
-    proposals = await service.list_proposals(document_id=document.id, actor_id=reader.id)
+    proposals = await service.list_proposals(
+        document_id=document.id, actor_id=reader.id
+    )
 
     assert proposals == []
 
@@ -339,7 +341,9 @@ async def test_reject_proposal_with_reason_creates_a_comment():
     service = ProposalService(session)
 
     await service.reject_proposal(
-        proposal_id=proposal.id, actor_id=owner.id, reason="not aligned with style guide"
+        proposal_id=proposal.id,
+        actor_id=owner.id,
+        reason="not aligned with style guide",
     )
 
     assert proposal.state == ProposalState.REJECTED

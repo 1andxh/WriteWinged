@@ -15,8 +15,6 @@ from src.core.proposals.models import ProposalORM, ProposalState
 from src.core.proposals.schemas import ProposalList, ProposalResponse
 from src.core.versions.diff import compute_diff
 
-COMMENTS_PAGE_SIZE = 20
-
 from ...db.dependency import session
 from ...exceptions import (
     DocumentNotFound,
@@ -26,6 +24,8 @@ from ...exceptions import (
     ProposalNotFound,
 )
 from ..versions import VersionORM
+
+COMMENTS_PAGE_SIZE = 20
 
 
 class ProposalService:
@@ -86,7 +86,9 @@ class ProposalService:
         base_content = proposal.base_version.content if proposal.base_version else ""
         return compute_diff(base_content, proposal.content)
 
-    async def _first_comment_page(self, proposal_id: uuid.UUID) -> list[CommentResponse]:
+    async def _first_comment_page(
+        self, proposal_id: uuid.UUID
+    ) -> list[CommentResponse]:
         result = await self.session.execute(
             select(CommentORM)
             .where(CommentORM.proposal_id == proposal_id)

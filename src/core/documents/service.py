@@ -107,7 +107,9 @@ class DocumentService:
         documents = list(result.scalars().all())
         return [await self._build_public_response(document) for document in documents]
 
-    async def get_public_document(self, document_id: uuid.UUID) -> PublicDocumentResponse:
+    async def get_public_document(
+        self, document_id: uuid.UUID
+    ) -> PublicDocumentResponse:
         document = await self.get_document(document_id)
         if (
             document.visibility != DocumentVisibility.PUBLIC
