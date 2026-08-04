@@ -15,6 +15,7 @@ class Config(CustomBaseSettings):
     API_VERSION: str = "0.1.0"
     ALLOWED_HOSTS: str = "localhost,127.0.0.1,testserver"
     ALLOWED_ORIGINS: str = "http://localhost:5173"
+    FRONTEND_URL: str | None = None
     LOG_REQUESTS: bool = True
 
     GOOGLE_CLIENT_ID: str | None = None

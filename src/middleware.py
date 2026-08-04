@@ -43,7 +43,7 @@ def register_middleware(app: FastAPI):
             client = request.client.host if request.client else "-"
             method = request.method
             path = request.url.path
-            if request.url.query:
+            if request.url.query and path != "/api/auth/callback/google":
                 path = f"{path}?{request.url.query}"
             http_version = request.scope.get("http_version", "1.1")
             status_code = response.status_code
