@@ -3,11 +3,13 @@ from datetime import datetime
 from enum import Enum
 
 import sqlalchemy.dialects.postgresql as pg
-from sqlalchemy import DateTime, ForeignKey, Text, func
+from sqlalchemy import DateTime, ForeignKey, String, Text, func
 from sqlalchemy import Enum as SAEnum
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
+from src.auth.models import User
 from src.core.documents import DocumentORM
+from src.core.versions import VersionORM
 from src.db.base import Base
 
 
@@ -33,6 +35,8 @@ class ProposalORM(Base):
     base_version_id: Mapped[uuid.UUID | None] = mapped_column(
         ForeignKey("versions.id", ondelete="SET NULL")
     )
+    title: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    description: Mapped[str | None] = mapped_column(String(1024), nullable=True)
     content: Mapped[str] = mapped_column(Text, nullable=False)
     state: Mapped[ProposalState] = mapped_column(
         SAEnum(ProposalState, name="proposal_state", native_enum=False),
@@ -52,4 +56,8 @@ class ProposalORM(Base):
     # relationship
     document: Mapped["DocumentORM"] = relationship(
         back_populates="proposals", foreign_keys=[document_id]
+    )
+    author: Mapped["User"] = relationship(lazy="joined", foreign_keys=[author_id])
+    base_version: Mapped["VersionORM | None"] = relationship(
+        foreign_keys=[base_version_id]
     )

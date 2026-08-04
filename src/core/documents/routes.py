@@ -12,6 +12,7 @@ from .schemas import (
     DocumentReadResponse,
     DocumentRenameRequest,
     DocumentResponse,
+    PublicDocumentResponse,
 )
 from .service import DocumentService, DocumentVisibility
 
@@ -20,7 +21,7 @@ document_service = Annotated[DocumentService, Depends(get_document_service)]
 user = Annotated[User, Depends(get_current_user)]
 
 
-@document_router.get("/", response_model=list[DocumentReadResponse])
+@document_router.get("/", response_model=list[PublicDocumentResponse])
 async def get_public_documents(
     service: document_service,
     q: str | None = Query(None, description="search documents by title"),
@@ -31,6 +32,11 @@ async def get_public_documents(
         search_query=q, limit=limit, offset=offset
     )
     return documents
+
+
+@document_router.get("/{document_id}/public", response_model=PublicDocumentResponse)
+async def get_public_document(document_id: uuid.UUID, service: document_service):
+    return await service.get_public_document(document_id=document_id)
 
 
 @document_router.get("/me", response_model=list[DocumentReadResponse])
@@ -68,7 +74,8 @@ async def get_document(document_id: uuid.UUID, service: document_service, user: 
         document.visibility == DocumentVisibility.PRIVATE
         and document.owner_id != user.id
     ):
-        raise DocumentPermissionDenied()
+        if not await service.is_active_contributor(document_id, user.id):
+            raise DocumentPermissionDenied()
 
     return document
 
@@ -79,7 +86,9 @@ async def get_document(document_id: uuid.UUID, service: document_service, user: 
 async def create_document(
     payload: DocumentCreateRequest, service: document_service, user: user
 ):
-    new_document = await service.create_document(actor_id=user.id, title=payload.title)
+    new_document = await service.create_document(
+        actor_id=user.id, title=payload.title, category=payload.category
+    )
 
     return new_document
 

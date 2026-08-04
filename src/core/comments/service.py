@@ -6,7 +6,7 @@ from sqlalchemy import func, select
 from src.auth.models import User
 from src.core.contributions import ContributionORM
 from src.core.documents import DocumentORM
-from src.core.documents.models import DocumentState
+from src.core.documents.models import DocumentState, DocumentVisibility
 from src.core.proposals.models import ProposalORM
 
 from ...db.dependency import session
@@ -73,7 +73,8 @@ class CommentService:
             raise InvalidDocumentState("Cannot read archived docs")
         is_owner = document.owner_id == actor_id
         is_contributor = await self._is_active_contributor(document.id, actor_id)
-        if not (is_owner or is_contributor):
+        is_public = document.visibility == DocumentVisibility.PUBLIC
+        if not (is_owner or is_contributor or is_public):
             raise DocumentPermissionDenied()
 
     async def list_comments(
@@ -144,6 +145,7 @@ class CommentService:
         comment.author = actor
         self.session.add(comment)
         await self.session.flush()
+        await self.session.commit()
         return CommentResponse.from_comment(comment)
 
     async def update_comment(
@@ -185,6 +187,7 @@ class CommentService:
                 comment.resolved_by = None
 
         await self.session.flush()
+        await self.session.commit()
         return CommentResponse.from_comment(comment)
 
     async def delete_comment(
@@ -207,3 +210,4 @@ class CommentService:
 
         await self.session.delete(comment)
         await self.session.flush()
+        await self.session.commit()

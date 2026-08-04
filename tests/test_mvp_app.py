@@ -195,6 +195,8 @@ def test_document_routes_call_service_with_frontend_friendly_shapes():
             owner_id=user_id,
             created_at="2026-06-02T00:00:00Z",
             updated_at="2026-06-02T00:00:00Z",
+            published_version_id=None,
+            draft_version_id=None,
             versions=[],
             contributions=[],
         )
@@ -218,7 +220,7 @@ def test_document_routes_call_service_with_frontend_friendly_shapes():
         async def get_document(self, document_id):
             return make_document()
 
-        async def create_document(self, actor_id, title):
+        async def create_document(self, actor_id, title, category=None):
             assert actor_id == user_id
             return make_document(title=title)
 

@@ -9,6 +9,7 @@ from src import app
 from src.auth import routes as auth_routes
 from src.auth.dependencies import get_auth_service, get_token_service
 from src.auth.service import AccessTokens
+from src.config import config
 
 
 class FakeGoogleClient:
@@ -79,14 +80,19 @@ def test_google_callback_route_issues_tokens_on_success(monkeypatch):
     app.dependency_overrides[get_token_service] = lambda: FakeTokenService()
     client = TestClient(app)
 
-    response = client.get("/api/auth/callback/google")
+    response = client.get("/api/auth/callback/google", follow_redirects=False)
 
     app.dependency_overrides.clear()
 
-    assert response.status_code == 200
-    body = response.json()
-    assert body["access_token"] == "access-tok"
-    assert body["refresh_token"] == "refresh-tok"
+    assert response.status_code in (302, 307)
+    expected_frontend_url = (
+        config.FRONTEND_URL or config.ALLOWED_ORIGINS.split(",")[0].strip()
+    )
+    location = response.headers["location"]
+    assert location.startswith(f"{expected_frontend_url}/auth/google/callback?")
+    assert "access_token=access-tok" in location
+    assert "refresh_token=refresh-tok" in location
+    assert response.headers["referrer-policy"] == "no-referrer"
 
 
 def test_google_callback_route_rejects_oauth_error(monkeypatch):

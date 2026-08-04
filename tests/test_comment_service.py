@@ -63,6 +63,9 @@ class QueueSession:
     async def flush(self):
         return None
 
+    async def commit(self):
+        return None
+
 
 def make_user(username: str = "writer") -> User:
     return User(
@@ -449,10 +452,11 @@ async def test_delete_comment_rejects_unrelated_contributor():
 
 
 @pytest.mark.asyncio
-async def test_list_comments_rejects_non_owner_non_contributor():
+async def test_list_comments_rejects_non_owner_non_contributor_on_private_document():
     owner = make_user("owner")
     outsider = make_user("outsider")
     document = make_document(owner.id)
+    document.visibility = DocumentVisibility.PRIVATE
     proposal = make_proposal(document.id, owner.id)
 
     session = QueueSession(
@@ -468,6 +472,31 @@ async def test_list_comments_rejects_non_owner_non_contributor():
         await service.list_comments(
             document_id=document.id, proposal_id=proposal.id, actor_id=outsider.id
         )
+
+
+@pytest.mark.asyncio
+async def test_list_comments_allows_reader_on_public_document():
+    owner = make_user("owner")
+    reader = make_user("reader")
+    document = make_document(owner.id)  # PUBLIC by default
+    proposal = make_proposal(document.id, owner.id)
+
+    session = QueueSession(
+        results=[
+            DummyResult(one=proposal),
+            DummyResult(one=document),
+            DummyResult(one=None),
+            DummyResult(row=(0, 0)),
+            DummyResult(scalars_list=[]),
+        ]
+    )
+    service = CommentService(session)
+
+    result = await service.list_comments(
+        document_id=document.id, proposal_id=proposal.id, actor_id=reader.id
+    )
+
+    assert result.total == 0
 
 
 @pytest.mark.asyncio
