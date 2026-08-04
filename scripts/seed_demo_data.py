@@ -178,7 +178,6 @@ async def seed() -> None:
             proposal = ProposalORM(
                 document_id=document.id,
                 author_id=author.id,
-                title=spec["title"],
                 content=spec["content"],
                 state=ProposalState.OPEN,
             )

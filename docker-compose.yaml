@@ -1,10 +1,8 @@
-name: limarr
-
 services:
   api:
     build:
       context: .
-    container_name: limarr_api
+    container_name: writewinged_api
     restart: unless-stopped
     env_file:
       - .env
@@ -15,12 +13,10 @@ services:
         condition: service_healthy
     ports:
       - "${PORT:-8082}:${PORT:-8000}"
-    networks:
-      - limarr_network
 
   db:
     image: postgres:16
-    container_name: limarr_db
+    container_name: writewinged_db
     restart: unless-stopped
     environment:
       POSTGRES_USER: ${POSTGRES_USER}
@@ -35,12 +31,6 @@ services:
       interval: 5s
       timeout: 5s
       retries: 10
-    networks:
-      - limarr_network
-
-networks:
-  limarr_network:
-    name: limarr_network
 
 volumes:
   db_data:

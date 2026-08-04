@@ -81,16 +81,11 @@ class FakeRefreshTokenService:
         return token
 
 
-class FakeSession:
-    async def commit(self):
-        return None
-
-
 def make_service():
     session_service = FakeSessionService()
     refresh_token_service = FakeRefreshTokenService()
     token_service = TokenService(
-        session=FakeSession(),
+        session=object(),
         session_service=session_service,
         refresh_token_service=refresh_token_service,
     )
