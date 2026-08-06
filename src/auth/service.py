@@ -63,13 +63,11 @@ class UserService:
             setattr(user, k, v)
 
         await self.session.flush()
-        await self.session.commit()
         return user
 
     async def set_password(self, user: User, new_password: str) -> User:
         user.password_hash = hash_password(new_password)
         await self.session.flush()
-        await self.session.commit()
         return user
 
     async def create_google_user(self, google_user: GoogleUser) -> User:
@@ -97,9 +95,7 @@ class AuthService:
     async def register(self, payload: UserCreateModel) -> User:
         if await self.user_service.check_user_exists(payload.email):
             raise UserAlreadyExistsException(payload.email)
-        user = await self.user_service.create_user(payload)
-        await self.session.commit()
-        return user
+        return await self.user_service.create_user(payload)
 
     async def authenticate(self, email: str, password: str) -> User:
         user = await self.user_service.get_user_by_email(email)
@@ -119,12 +115,9 @@ class AuthService:
             user.google_sub = google_user.sub
             user.is_verified = True
             await self.session.flush()
-            await self.session.commit()
             return user
 
-        user = await self.user_service.create_google_user(google_user)
-        await self.session.commit()
-        return user
+        return await self.user_service.create_google_user(google_user)
 
 
 class SessionService:
@@ -241,7 +234,6 @@ class TokenService:
         )
         refresh_token = await self.refresh_token_service.issue(user_session.id)
         access_token = create_access_token(user_id=user.id, session_id=user_session.id)
-        await self.session.commit()
         return AccessTokens(access_token=access_token, refresh_token=refresh_token)
 
     async def refresh_tokens(self, raw_refresh_token: str) -> AccessTokens:
@@ -252,7 +244,6 @@ class TokenService:
         if token.revoked_at is not None:
             await self.refresh_token_service.revoke_family(token.family_id)
             await self.session_service.revoke_session(token.session_id)
-            await self.session.commit()
             raise RevokedTokenException()
 
         if token.expires_at < datetime.now(timezone.utc):
@@ -267,11 +258,9 @@ class TokenService:
         access_token = create_access_token(
             user_id=user_session.user_id, session_id=user_session.id
         )
-        await self.session.commit()
         return AccessTokens(access_token=access_token, refresh_token=new_raw_token)
 
     async def logout(self, raw_refresh_token: str) -> None:
         token = await self.refresh_token_service.revoke(raw_refresh_token)
         if token is not None:
             await self.session_service.revoke_session(token.session_id)
-        await self.session.commit()

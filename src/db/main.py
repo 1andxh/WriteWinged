@@ -5,18 +5,13 @@ from sqlalchemy.ext.asyncio import (
     async_sessionmaker,
     create_async_engine,
 )
-from sqlalchemy.pool import NullPool
 
 from src.config import config
 
 async_engine = create_async_engine(
     url=config.DATABASE_URL,
     echo=config.SQL_ECHO,
-    # NullPool: every checkout is a brand-new connection, none are reused
-    # across requests. Ruled out an entire class of stale-connection bugs
-    # while chasing the signup/login visibility issue.
-    poolclass=NullPool,
-    pool_pre_ping=True,
+    # connect_args={"statement_cache_size": 0},  # supabase to break prepared statements
 )
 
 Session = async_sessionmaker(

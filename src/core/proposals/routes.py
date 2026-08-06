@@ -29,11 +29,7 @@ async def create_proposal(
     service: proposal_service,
 ):
     proposal = await service.create_proposal(
-        document_id=document_id,
-        actor=current_user,
-        content=payload.content,
-        title=payload.title,
-        description=payload.description,
+        document_id=document_id, actor_id=current_user.id, content=payload.content
     )
     return proposal
 
@@ -83,9 +79,7 @@ async def update_proposal_state(
     if payload.state == ProposalState.ACCEPTED:
         await service.accept_proposal(proposal_id=proposal_id, actor_id=current_user.id)
         return
-    await service.reject_proposal(
-        proposal_id=proposal_id, actor_id=current_user.id, reason=payload.reason
-    )
+    await service.reject_proposal(proposal_id=proposal_id, actor_id=current_user.id)
     return
 
 

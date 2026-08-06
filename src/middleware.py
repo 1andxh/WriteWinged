@@ -1,5 +1,4 @@
 import logging
-
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.trustedhost import TrustedHostMiddleware
@@ -7,13 +6,14 @@ from starlette.middleware.sessions import SessionMiddleware
 
 from .config import config
 
-logger = logging.getLogger("writewinged.access")
+logger = logging.getLogger("uvicorn.access")
 
 
 def register_middleware(app: FastAPI):
     allowed_hosts = [
         host.strip() for host in config.ALLOWED_HOSTS.split(",") if host.strip()
     ]
+
     app.add_middleware(
         TrustedHostMiddleware,
         allowed_hosts=allowed_hosts,
@@ -44,7 +44,7 @@ def register_middleware(app: FastAPI):
             client = request.client.host if request.client else "-"
             method = request.method
             path = request.url.path
-            if request.url.query and path != "/api/auth/callback/google":
+            if request.url.query:
                 path = f"{path}?{request.url.query}"
             http_version = request.scope.get("http_version", "1.1")
             status_code = response.status_code
