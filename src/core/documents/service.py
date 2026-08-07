@@ -5,39 +5,23 @@ from sqlalchemy import desc, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from src.auth.service import UserService
-
 from ...exceptions import (
     DocumentNotFound,
     DocumentNotMutable,
     DocumentPermissionDenied,
     DocumentTitleConflict,
 )
-from ..contributions.models import ContributionORM
 from .models import DocumentORM, DocumentState, DocumentVisibility
-from .schemas import PublicDocumentResponse
 
 
 class DocumentService:
 
     def __init__(self, session: AsyncSession) -> None:
         self.session = session
-        self.user_service = UserService(session)
 
     def _can_manage(self, document: DocumentORM, actor_id) -> bool:
 
         return actor_id == document.owner_id
-
-    async def is_active_contributor(
-        self, document_id: uuid.UUID, user_id: uuid.UUID
-    ) -> bool:
-        statement = select(ContributionORM).where(
-            ContributionORM.document_id == document_id,
-            ContributionORM.user_id == user_id,
-            ContributionORM.revoked_at.is_(None),
-        )
-        result = await self.session.execute(statement)
-        return result.scalar_one_or_none() is not None
 
     def _ensure_mutable(self, document: DocumentORM):
         if document.deleted_at is not None:
@@ -77,24 +61,13 @@ class DocumentService:
 
         return list(result.scalars().all())
 
-    async def _build_public_response(
-        self, document: DocumentORM
-    ) -> PublicDocumentResponse:
-        owner = await self.user_service.get_user_by_id(document.owner_id)
-        published_version = next(
-            (v for v in document.versions if v.id == document.published_version_id),
-            None,
-        )
-        return PublicDocumentResponse.from_document(document, owner, published_version)
-
     async def list_public_documents(
         self, search_query: str | None = None, limit: int = 10, offset: int = 0
-    ) -> list[PublicDocumentResponse]:
+    ) -> list[DocumentORM]:
         statement = select(DocumentORM).where(
             DocumentORM.visibility == DocumentVisibility.PUBLIC,
             DocumentORM.state.in_([DocumentState.ACTIVE, DocumentState.LOCKED]),
             DocumentORM.deleted_at.is_(None),
-            DocumentORM.published_version_id.is_not(None),
         )
         if search_query:
             statement = statement.where(DocumentORM.title.ilike(f"%{search_query}%"))
@@ -104,19 +77,7 @@ class DocumentService:
         )
 
         result = await self.session.execute(statement)
-        documents = list(result.scalars().all())
-        return [await self._build_public_response(document) for document in documents]
-
-    async def get_public_document(
-        self, document_id: uuid.UUID
-    ) -> PublicDocumentResponse:
-        document = await self.get_document(document_id)
-        if (
-            document.visibility != DocumentVisibility.PUBLIC
-            or document.published_version_id is None
-        ):
-            raise DocumentNotFound()
-        return await self._build_public_response(document)
+        return list(result.scalars().all())
 
     async def get_document(self, document_id) -> DocumentORM:
         statement = select(DocumentORM).where(
@@ -149,9 +110,7 @@ class DocumentService:
         result = await self.session.execute(statement)
         return list(result.scalars().all())
 
-    async def create_document(
-        self, actor_id: uuid.UUID, title: str, category: str | None = None
-    ) -> DocumentORM:
+    async def create_document(self, actor_id: uuid.UUID, title: str) -> DocumentORM:
         if not actor_id:
             raise DocumentPermissionDenied("Not allowed to create document")
 
@@ -163,9 +122,8 @@ class DocumentService:
         document = DocumentORM(
             owner_id=actor_id,
             title=title,
-            category=category,
             state=DocumentState.ACTIVE,
-            visibility=DocumentVisibility.PRIVATE,
+            visibility=DocumentVisibility.PUBLIC,
         )
 
         self.session.add(document)
@@ -176,7 +134,6 @@ class DocumentService:
             raise DocumentTitleConflict()
 
         await self.session.refresh(document)
-        await self.session.commit()
         return document
 
     async def rename_document(
@@ -202,7 +159,6 @@ class DocumentService:
             await self.session.rollback()
             raise DocumentTitleConflict()
 
-        await self.session.commit()
         return document
 
     async def lock_document(
@@ -222,7 +178,6 @@ class DocumentService:
         document.state = DocumentState.LOCKED
         await self.session.flush()
         await self.session.refresh(document)
-        await self.session.commit()
 
         return document
 
@@ -239,7 +194,6 @@ class DocumentService:
         document.state = DocumentState.ACTIVE
         await self.session.flush()
         await self.session.refresh(document)
-        await self.session.commit()
         return document
 
     async def archive_document(
@@ -253,7 +207,6 @@ class DocumentService:
         document.state = DocumentState.ARCHIVED
         await self.session.flush()
         await self.session.refresh(document)
-        await self.session.commit()
         return document
 
     async def unarchive_document(
@@ -268,7 +221,6 @@ class DocumentService:
         document.state = DocumentState.ACTIVE
         await self.session.flush()
         await self.session.refresh(document)
-        await self.session.commit()
 
         return document
 
@@ -282,4 +234,3 @@ class DocumentService:
 
         document.deleted_at = datetime.now(timezone.utc)
         await self.session.flush()
-        await self.session.commit()

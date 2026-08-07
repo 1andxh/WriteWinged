@@ -38,9 +38,7 @@ async def get_contributors(
 
 
 @contributions_router.post(
-    "/{document_id}/contributors",
-    status_code=status.HTTP_201_CREATED,
-    response_model=ListContributor,
+    "/{document_id}/contributors", status_code=status.HTTP_201_CREATED
 )
 async def add_contributor(
     document_id: uuid.UUID,
@@ -49,9 +47,9 @@ async def add_contributor(
     service: contribution_service,
 ):
     try:
-        return await service.add_contributor(
+        await service.add_contributor(
             document_id=document_id,
-            email=payload.email,
+            contributor_id=payload.contributor_id,
             actor_id=current_user.id,
         )
     except DocumentNotFound:
@@ -65,6 +63,8 @@ async def add_contributor(
         )
     except ValueError as e:
         raise WriteWingedException(str(e))
+
+    return {"message": "contributor added"}
 
 
 @contributions_router.delete(

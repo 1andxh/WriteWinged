@@ -3,17 +3,12 @@ from datetime import datetime as dt
 from datetime import timezone
 
 from sqlalchemy import desc, func, select
-from sqlalchemy.orm import selectinload
 
-from src.auth.models import User
 from src.core.comments.models import CommentORM
-from src.core.comments.schemas import CommentResponse
 from src.core.contributions import ContributionORM
 from src.core.documents import DocumentORM
-from src.core.documents.models import DocumentState, DocumentVisibility
+from src.core.documents.models import DocumentState
 from src.core.proposals.models import ProposalORM, ProposalState
-from src.core.proposals.schemas import ProposalList, ProposalResponse
-from src.core.versions.diff import compute_diff
 
 from ...db.dependency import session
 from ...exceptions import (
@@ -24,8 +19,6 @@ from ...exceptions import (
     ProposalNotFound,
 )
 from ..versions import VersionORM
-
-COMMENTS_PAGE_SIZE = 20
 
 
 class ProposalService:
@@ -82,30 +75,13 @@ class ProposalService:
             proposal.comment_count = total
             proposal.resolved_count = resolved
 
-    def _diff_against_base(self, proposal: ProposalORM) -> tuple[list[dict], int, int]:
-        base_content = proposal.base_version.content if proposal.base_version else ""
-        return compute_diff(base_content, proposal.content)
-
-    async def _first_comment_page(
-        self, proposal_id: uuid.UUID
-    ) -> list[CommentResponse]:
-        result = await self.session.execute(
-            select(CommentORM)
-            .where(CommentORM.proposal_id == proposal_id)
-            .order_by(CommentORM.created_at)
-            .limit(COMMENTS_PAGE_SIZE)
-        )
-        comments = list(result.scalars().all())
-        return [CommentResponse.from_comment(c) for c in comments]
-
     async def create_proposal(
         self,
         document_id: uuid.UUID,
-        actor: User,
+        actor_id: uuid.UUID,
         content: str,
-        title: str,
-        description: str | None = None,
-    ) -> ProposalResponse:
+        base_version_id: uuid.UUID | None = None,
+    ):
         if not content.strip():
             raise ValueError("Proposal content cannot be empty")
         document = await self._get_document(document_id=document_id)
@@ -113,44 +89,25 @@ class ProposalService:
         if document.state == DocumentState.ARCHIVED:
             raise InvalidDocumentState("cannot propose change to arhcived document")
         is_contributor = await self._is_active_contributor(
-            document_id=document_id, user_id=actor.id
+            document_id=document_id, user_id=actor_id
         )
         if not is_contributor:
             raise DocumentPermissionDenied("Only Contributors may create proposals")
-
-        base_version_id = document.draft_version_id or document.published_version_id
-        base_version = next(
-            (v for v in document.versions if v.id == base_version_id), None
-        )
-
         proposal = ProposalORM(
             document_id=document_id,
-            author_id=actor.id,
+            author_id=actor_id,
             base_version_id=base_version_id,
-            title=title,
-            description=description,
             content=content,
             state=ProposalState.OPEN,
         )
-        proposal.author = actor
-        proposal.base_version = base_version
 
         self.session.add(proposal)
         await self.session.flush()
-        await self.session.commit()
 
         # A brand new proposal has no comments yet.
         proposal.comment_count = 0
         proposal.resolved_count = 0
-
-        lines, additions, deletions = self._diff_against_base(proposal)
-        return ProposalResponse.from_proposal(
-            proposal,
-            author_name=actor.username,
-            additions=additions,
-            deletions=deletions,
-            lines=lines,
-        )
+        return proposal
 
     async def update_proposal(
         self, proposal_id: uuid.UUID, actor_id: uuid.UUID, content: str
@@ -171,7 +128,6 @@ class ProposalService:
             raise DocumentPermissionDenied()
 
         proposal.content = content
-        await self.session.commit()
 
     async def withdraw_proposal(
         self, proposal_id: uuid.UUID, actor_id: uuid.UUID
@@ -188,7 +144,6 @@ class ProposalService:
             raise DocumentPermissionDenied()
 
         proposal.state = ProposalState.WITHDRAWN
-        await self.session.commit()
 
     async def accept_proposal(
         self, proposal_id: uuid.UUID, actor_id: uuid.UUID
@@ -211,7 +166,6 @@ class ProposalService:
 
         proposal.state = ProposalState.ACCEPTED
         proposal.decided_at = dt.now(timezone.utc)
-        await self.session.commit()
 
     async def reject_proposal(
         self, proposal_id: uuid.UUID, actor_id: uuid.UUID, reason: str | None = None
@@ -231,23 +185,11 @@ class ProposalService:
         proposal.state = ProposalState.REJECTED
         proposal.decided_at = dt.now(timezone.utc)
 
-        if reason:
-            rejection_comment = CommentORM(
-                proposal_id=proposal.id,
-                author_id=actor_id,
-                text=f"Rejected: {reason}",
-            )
-            self.session.add(rejection_comment)
-
-        await self.session.commit()
-
     async def get_proposal(
         self, proposal_id: uuid.UUID, actor_id: uuid.UUID
-    ) -> ProposalResponse:
+    ) -> ProposalORM:
         result = await self.session.execute(
-            select(ProposalORM)
-            .where(ProposalORM.id == proposal_id)
-            .options(selectinload(ProposalORM.base_version))
+            select(ProposalORM).where(ProposalORM.id == proposal_id)
         )
         proposal = result.scalar_one_or_none()
         if proposal is None:
@@ -260,25 +202,12 @@ class ProposalService:
         is_contributor = await self._is_active_contributor(
             document_id=proposal.document_id, user_id=actor_id
         )
-        is_public = document.visibility == DocumentVisibility.PUBLIC
-        if not (is_owner or is_author or is_contributor or is_public):
+        if not (is_owner or is_author or is_contributor):
             raise DocumentPermissionDenied()
         await self._attach_comment_counts([proposal])
-        comments = await self._first_comment_page(proposal.id)
+        return proposal
 
-        lines, additions, deletions = self._diff_against_base(proposal)
-        return ProposalResponse.from_proposal(
-            proposal,
-            author_name=proposal.author.username,
-            additions=additions,
-            deletions=deletions,
-            lines=lines,
-            comments=comments,
-        )
-
-    async def list_proposals(
-        self, document_id: uuid.UUID, actor_id: uuid.UUID
-    ) -> list[ProposalList]:
+    async def list_proposals(self, document_id: uuid.UUID, actor_id: uuid.UUID):
         document = await self._get_document(document_id=document_id)
         if document.state == DocumentState.ARCHIVED:
             raise InvalidDocumentState("Cannot read archived docs")
@@ -286,32 +215,17 @@ class ProposalService:
         is_contributor = await self._is_active_contributor(
             document_id=document_id, user_id=actor_id
         )
-        is_public = document.visibility == DocumentVisibility.PUBLIC
-        if not (is_owner or is_contributor or is_public):
+        if not (is_owner or is_contributor):
             raise DocumentPermissionDenied()
 
         result = await self.session.execute(
             select(ProposalORM)
             .where(ProposalORM.document_id == document_id)
             .order_by(desc(ProposalORM.created_at))
-            .options(selectinload(ProposalORM.base_version))
         )
         proposals = list(result.scalars().all())
         await self._attach_comment_counts(proposals)
-
-        responses = []
-        for proposal in proposals:
-            lines, additions, deletions = self._diff_against_base(proposal)
-            responses.append(
-                ProposalList.from_proposal(
-                    proposal,
-                    author_name=proposal.author.username,
-                    additions=additions,
-                    deletions=deletions,
-                    lines=lines,
-                )
-            )
-        return responses
+        return proposals
 
     async def merge_proposal(
         self, proposal_id: uuid.UUID, actor_id: uuid.UUID
@@ -350,8 +264,6 @@ class ProposalService:
             document_id=document.id,
             author_id=actor_id,
             content=proposal.content,
-            label=f"v{len(document.versions) + 1}",
-            message=proposal.title,
         )
         self.session.add(merged_version)
         await self.session.flush()
@@ -359,20 +271,5 @@ class ProposalService:
         # mark and switch pointer
         document.draft_version_id = merged_version.id
         proposal.merged_at = dt.now(timezone.utc)
-
-        # merging closes the discussion - resolve any comments still open
-        open_comments = await self.session.execute(
-            select(CommentORM).where(
-                CommentORM.proposal_id == proposal.id,
-                CommentORM.resolved.is_(False),
-            )
-        )
-        now = dt.now(timezone.utc)
-        for comment in open_comments.scalars().all():
-            comment.resolved = True
-            comment.resolved_at = now
-            comment.resolved_by = actor_id
-
-        await self.session.commit()
 
         return merged_version

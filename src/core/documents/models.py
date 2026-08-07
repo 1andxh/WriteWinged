@@ -36,7 +36,6 @@ class DocumentORM(Base):
         pg.UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
     )
     title: Mapped[str] = mapped_column(String(255), nullable=False, index=True)
-    category: Mapped[str | None] = mapped_column(String(64), nullable=True)
 
     owner_id: Mapped[uuid.UUID] = mapped_column(
         ForeignKey("users.id", ondelete="RESTRICT"), index=True
