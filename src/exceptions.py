@@ -96,6 +96,16 @@ class UserNotVerifiedException(AuthException):
         )
 
 
+class InvitationEmailMismatch(AuthException):
+    """Raised when the logged-in user's email doesn't match the invite token"""
+
+    def __init__(self):
+        super().__init__(
+            "This invitation was sent to a different account",
+            status_code=status.HTTP_403_FORBIDDEN,
+        )
+
+
 # # SUGGESTION EXCEPTIONS
 # class SuggestionServiceException(WriteWingedException):
 #     """Exceptions for service layer logic """

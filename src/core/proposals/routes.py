@@ -1,7 +1,7 @@
 from typing import Annotated
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, status
+from fastapi import APIRouter, BackgroundTasks, Depends, status
 
 from src.auth.dependencies import get_current_user
 from src.auth.models import User
@@ -27,9 +27,15 @@ async def create_proposal(
     payload: ProposalCreate,
     current_user: user,
     service: proposal_service,
+    background_tasks: BackgroundTasks,
 ):
     proposal = await service.create_proposal(
-        document_id=document_id, actor_id=current_user.id, content=payload.content
+        document_id=document_id,
+        actor_id=current_user.id,
+        content=payload.content,
+        title=payload.title,
+        description=payload.description,
+        background_tasks=background_tasks,
     )
     return proposal
 

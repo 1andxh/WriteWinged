@@ -2,13 +2,19 @@ import uuid
 from datetime import datetime as dt
 from datetime import timezone
 
+from fastapi import BackgroundTasks
 from sqlalchemy import desc, func, select
+from sqlalchemy.orm import selectinload
 
+from src.auth.service import UserService
 from src.core.comments.models import CommentORM
 from src.core.contributions import ContributionORM
 from src.core.documents import DocumentORM
 from src.core.documents.models import DocumentState
 from src.core.proposals.models import ProposalORM, ProposalState
+from src.core.proposals.schemas import ProposalResponse
+from src.core.versions.diff import compute_diff
+from src.mail.service import MailService
 
 from ...db.dependency import session
 from ...exceptions import (
@@ -22,8 +28,10 @@ from ..versions import VersionORM
 
 
 class ProposalService:
-    def __init__(self, session: session) -> None:
+    def __init__(self, session: session, mail_service: MailService) -> None:
         self.session = session
+        self.user_service = UserService(session)
+        self.mail_service = mail_service
 
     async def _get_document(self, document_id: uuid.UUID) -> DocumentORM:
         result = await self.session.execute(
@@ -75,13 +83,19 @@ class ProposalService:
             proposal.comment_count = total
             proposal.resolved_count = resolved
 
+    def _diff_against_base(self, proposal: ProposalORM) -> tuple[list[dict], int, int]:
+        base_content = proposal.base_version.content if proposal.base_version else ""
+        return compute_diff(base_content, proposal.content)
+
     async def create_proposal(
         self,
         document_id: uuid.UUID,
         actor_id: uuid.UUID,
         content: str,
-        base_version_id: uuid.UUID | None = None,
-    ):
+        title: str,
+        background_tasks: BackgroundTasks,
+        description: str | None = None,
+    ) -> ProposalResponse:
         if not content.strip():
             raise ValueError("Proposal content cannot be empty")
         document = await self._get_document(document_id=document_id)
@@ -93,21 +107,57 @@ class ProposalService:
         )
         if not is_contributor:
             raise DocumentPermissionDenied("Only Contributors may create proposals")
+
+        base_version_id = document.draft_version_id or document.published_version_id
+        author = await self.user_service.get_user_by_id(actor_id)
+
         proposal = ProposalORM(
             document_id=document_id,
             author_id=actor_id,
             base_version_id=base_version_id,
+            title=title,
+            description=description,
             content=content,
             state=ProposalState.OPEN,
+        )
+        # Assign the already-loaded author directly rather than relying on
+        # the lazy="joined" relationship, which only eager-loads on a fresh
+        # select() -- a newly flushed object would otherwise trigger a lazy
+        # load on next access, which fails under the async session.
+        proposal.author = author
+        proposal.base_version = next(
+            (v for v in document.versions if v.id == base_version_id), None
         )
 
         self.session.add(proposal)
         await self.session.flush()
 
+        # Only non-owner contributors can reach this point today
+        # (_is_active_contributor above), so this guard is currently
+        # unreachable -- kept as cheap insurance against a self-notification
+        # bug if that permission rule ever loosens.
+        if document.owner_id != actor_id:
+            owner = await self.user_service.get_user_by_id(document.owner_id)
+            if owner is not None:
+                background_tasks.add_task(
+                    self.mail_service.send_proposal_created_email,
+                    owner,
+                    document,
+                    proposal,
+                )
+
         # A brand new proposal has no comments yet.
         proposal.comment_count = 0
         proposal.resolved_count = 0
-        return proposal
+
+        lines, additions, deletions = self._diff_against_base(proposal)
+        return ProposalResponse.from_proposal(
+            proposal,
+            author_name=author.username,
+            additions=additions,
+            deletions=deletions,
+            lines=lines,
+        )
 
     async def update_proposal(
         self, proposal_id: uuid.UUID, actor_id: uuid.UUID, content: str
@@ -187,9 +237,11 @@ class ProposalService:
 
     async def get_proposal(
         self, proposal_id: uuid.UUID, actor_id: uuid.UUID
-    ) -> ProposalORM:
+    ) -> ProposalResponse:
         result = await self.session.execute(
-            select(ProposalORM).where(ProposalORM.id == proposal_id)
+            select(ProposalORM)
+            .where(ProposalORM.id == proposal_id)
+            .options(selectinload(ProposalORM.base_version))
         )
         proposal = result.scalar_one_or_none()
         if proposal is None:
@@ -205,9 +257,19 @@ class ProposalService:
         if not (is_owner or is_author or is_contributor):
             raise DocumentPermissionDenied()
         await self._attach_comment_counts([proposal])
-        return proposal
 
-    async def list_proposals(self, document_id: uuid.UUID, actor_id: uuid.UUID):
+        lines, additions, deletions = self._diff_against_base(proposal)
+        return ProposalResponse.from_proposal(
+            proposal,
+            author_name=proposal.author.username,
+            additions=additions,
+            deletions=deletions,
+            lines=lines,
+        )
+
+    async def list_proposals(
+        self, document_id: uuid.UUID, actor_id: uuid.UUID
+    ) -> list[ProposalResponse]:
         document = await self._get_document(document_id=document_id)
         if document.state == DocumentState.ARCHIVED:
             raise InvalidDocumentState("Cannot read archived docs")
@@ -222,10 +284,24 @@ class ProposalService:
             select(ProposalORM)
             .where(ProposalORM.document_id == document_id)
             .order_by(desc(ProposalORM.created_at))
+            .options(selectinload(ProposalORM.base_version))
         )
         proposals = list(result.scalars().all())
         await self._attach_comment_counts(proposals)
-        return proposals
+
+        responses = []
+        for proposal in proposals:
+            lines, additions, deletions = self._diff_against_base(proposal)
+            responses.append(
+                ProposalResponse.from_proposal(
+                    proposal,
+                    author_name=proposal.author.username,
+                    additions=additions,
+                    deletions=deletions,
+                    lines=lines,
+                )
+            )
+        return responses
 
     async def merge_proposal(
         self, proposal_id: uuid.UUID, actor_id: uuid.UUID
