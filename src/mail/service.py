@@ -21,7 +21,6 @@ class MailService:
     def __init__(self, config) -> None:
         email_secret = config.EMAIL_SECRET or config.JWT_SECRET
         reset_secret = config.PASSWORD_RESET_SECRET or config.JWT_SECRET
-        self.domain = config.DOMAIN or "localhost:8000"
         self.frontend_base = config.FRONTEND_URL or "http://localhost:5173"
         self.email_serializer = URLSafeTimedSerializer(
             secret_key=email_secret, salt="email-verification"
@@ -73,7 +72,7 @@ class MailService:
 
     async def send_verification_email(self, user: User) -> None:
         token = self.create_email_verification_token({"email": user.email})
-        link = f"https://{self.domain}/api/auth/verify?token={quote(token, safe='')}"
+        link = f"{self.frontend_base}/verify?token={quote(token, safe='')}"
         html = templates.get_template("verify_email.html").render(
             username=user.username, link=link, year=datetime.now(timezone.utc).year
         )
@@ -83,10 +82,7 @@ class MailService:
         token = self.create_password_reset_token(
             {"email": email, "type": "password-reset"}
         )
-        link = (
-            f"https://{self.domain}/api/auth/reset-password?token="
-            f"{quote(token, safe='')}"
-        )
+        link = f"{self.frontend_base}/reset-password?token={quote(token, safe='')}"
         html = templates.get_template("password_reset.html").render(
             link=link, year=datetime.now(timezone.utc).year
         )
