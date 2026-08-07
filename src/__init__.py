@@ -6,7 +6,7 @@ from fastapi import FastAPI
 from src.auth.routes import auth_router
 from src.config import config
 from src.core.comments.routes import comment_router
-from src.core.contributions.routes import contributions_router
+from src.core.contributions.routes import contributions_router, invitation_router
 from src.core.documents.routes import document_router
 from src.core.proposals.routes import proposal_router
 from src.core.versions.routes import version_router
@@ -59,5 +59,6 @@ app.include_router(version_router, prefix="/api/documents", tags=["versions"])
 app.include_router(
     contributions_router, prefix="/api/documents", tags=["contributions"]
 )
+app.include_router(invitation_router, prefix="/api/invitations", tags=["contributions"])
 app.include_router(proposal_router, prefix="/api/documents", tags=["proposals"])
 app.include_router(comment_router, prefix="/api/documents", tags=["comments"])

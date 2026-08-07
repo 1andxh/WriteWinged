@@ -1,7 +1,7 @@
 import uuid
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, status
 
 from src.auth import User
 from src.auth.dependencies import get_current_user
@@ -14,10 +14,16 @@ from src.exceptions import (
 )
 
 from .dependency import get_contribution_service
-from .schemas import AddContributorModel, ListContributor
+from .schemas import (
+    AddContributorModel,
+    InvitePreviewResponse,
+    InviteSentResponse,
+    ListContributor,
+)
 from .services import ContributionService
 
 contributions_router = APIRouter()
+invitation_router = APIRouter()
 user = Annotated[User, Depends(get_current_user)]
 contribution_service = Annotated[
     ContributionService, Depends(get_contribution_service)
@@ -38,19 +44,23 @@ async def get_contributors(
 
 
 @contributions_router.post(
-    "/{document_id}/contributors", status_code=status.HTTP_201_CREATED
+    "/{document_id}/contributors",
+    status_code=status.HTTP_200_OK,
+    response_model=InviteSentResponse,
 )
-async def add_contributor(
+async def invite_contributor(
     document_id: uuid.UUID,
     payload: AddContributorModel,
     current_user: user,
     service: contribution_service,
+    background_tasks: BackgroundTasks,
 ):
     try:
-        await service.add_contributor(
+        return await service.invite_contributor(
             document_id=document_id,
-            contributor_id=payload.contributor_id,
+            email=payload.email,
             actor_id=current_user.id,
+            background_tasks=background_tasks,
         )
     except DocumentNotFound:
         raise HTTPException(
@@ -64,7 +74,19 @@ async def add_contributor(
     except ValueError as e:
         raise WriteWingedException(str(e))
 
-    return {"message": "contributor added"}
+
+@invitation_router.get("/{token}", response_model=InvitePreviewResponse)
+async def preview_invitation(
+    token: str, current_user: user, service: contribution_service
+):
+    return await service.preview_invitation(token=token, actor=current_user)
+
+
+@invitation_router.post("/{token}/accept", response_model=ListContributor)
+async def accept_invitation(
+    token: str, current_user: user, service: contribution_service
+):
+    return await service.accept_invitation(token=token, actor=current_user)
 
 
 @contributions_router.delete(
