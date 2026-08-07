@@ -10,6 +10,7 @@ from src.core.versions import VersionORM
 from src.core.versions.diff import compute_diff
 from src.core.versions.schemas import VersionDiffResponse, VersionRead
 from src.core.versions.utils import (
+    build_version_reads,
     can_author_version,
     can_publish_version,
     ensure_version_belongs,
@@ -137,19 +138,7 @@ class VersionService:
         result = await self.session.execute(statement)
         versions = list(result.scalars().all())
 
-        reads: list[VersionRead] = []
-        previous_content = ""
-        for version in versions:
-            _, additions, deletions = compute_diff(previous_content, version.content)
-            reads.append(
-                VersionRead.from_version(
-                    version,
-                    published=version.id == document.published_version_id,
-                    additions=additions,
-                    deletions=deletions,
-                )
-            )
-            previous_content = version.content
+        reads = build_version_reads(versions, document.published_version_id)
 
         return document, versions, reads
 

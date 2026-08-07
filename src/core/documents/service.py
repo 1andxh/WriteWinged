@@ -6,6 +6,8 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.auth.service import UserService
+from src.core.contributions.schemas import ListContributor
+from src.core.versions.utils import build_version_reads
 
 from ...exceptions import (
     DocumentNotFound,
@@ -14,7 +16,7 @@ from ...exceptions import (
     DocumentTitleConflict,
 )
 from .models import DocumentORM, DocumentState, DocumentVisibility
-from .schemas import PublicDocumentResponse
+from .schemas import DocumentReadResponse, PublicDocumentResponse
 
 
 class DocumentService:
@@ -26,6 +28,27 @@ class DocumentService:
     def _can_manage(self, document: DocumentORM, actor_id) -> bool:
 
         return actor_id == document.owner_id
+
+    def to_read_response(self, document: DocumentORM) -> DocumentReadResponse:
+        version_reads = build_version_reads(
+            document.versions, document.published_version_id
+        )
+
+        return DocumentReadResponse(
+            id=document.id,
+            title=document.title,
+            state=document.state,
+            owner_id=document.owner_id,
+            visibility=document.visibility,
+            created_at=document.created_at,
+            updated_at=document.updated_at,
+            published_version_id=document.published_version_id,
+            draft_version_id=document.draft_version_id,
+            versions=version_reads,
+            contributions=[
+                ListContributor.from_contribution(c) for c in document.contributions
+            ],
+        )
 
     def _ensure_mutable(self, document: DocumentORM):
         if document.deleted_at is not None:

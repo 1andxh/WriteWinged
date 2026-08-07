@@ -50,7 +50,7 @@ async def list_user_documents(
     documents = await service.get_all_documents(
         actor_id=user.id, search_query=q, limit=limit, offset=offset
     )
-    return documents
+    return [service.to_read_response(document) for document in documents]
 
 
 @document_router.get("/archive", response_model=list[DocumentReadResponse])
@@ -62,9 +62,10 @@ async def get_archived_documents(
     offset: int = Query(0, ge=0),
 ):
 
-    return await service.get_archived_documents(
+    documents = await service.get_archived_documents(
         actor_id=user.id, search_query=q, limit=limit, offset=offset
     )
+    return [service.to_read_response(document) for document in documents]
 
 
 @document_router.get("/{document_id}", response_model=DocumentReadResponse)
@@ -76,7 +77,7 @@ async def get_document(document_id: uuid.UUID, service: document_service, user: 
     ):
         raise DocumentPermissionDenied()
 
-    return document
+    return service.to_read_response(document)
 
 
 @document_router.post(
@@ -89,7 +90,7 @@ async def create_document(
         actor_id=user.id, title=payload.title, category=payload.category
     )
 
-    return new_document
+    return service.to_read_response(new_document)
 
 
 @document_router.patch("/{document_id}/rename", response_model=DocumentResponse)
