@@ -236,6 +236,9 @@ def test_document_routes_call_service_with_frontend_friendly_shapes():
             assert actor_id == user_id
             self.deleted = True
 
+        def to_read_response(self, document):
+            return document
+
     fake_service = FakeDocumentService()
 
     async def fake_current_user():
