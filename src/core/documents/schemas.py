@@ -4,7 +4,7 @@ import uuid
 from datetime import datetime
 from typing import TYPE_CHECKING
 
-from pydantic import BaseModel, ConfigDict, Field, computed_field
+from pydantic import BaseModel, ConfigDict, Field, computed_field, field_validator
 
 from src.core.comments.utils import compute_author_color, compute_initials
 from src.core.contributions.schemas import ListContributor
@@ -48,6 +48,14 @@ class DocumentReadResponse(BaseModel):
     draft_version_id: uuid.UUID | None
     versions: list[VersionRead]
     contributions: list[ListContributor] = Field(default_factory=list)
+
+    @field_validator("contributions", mode="before")
+    @classmethod
+    def _convert_contributions(cls, value):
+        return [
+            item if isinstance(item, ListContributor) else ListContributor.from_contribution(item)
+            for item in value
+        ]
 
     @computed_field
     @property

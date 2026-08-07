@@ -243,10 +243,10 @@ class DocumentService:
         self, document_id: uuid.UUID, actor_id: uuid.UUID
     ) -> DocumentORM:
         document = await self.get_document(document_id=document_id)
-        if document.state == DocumentState.ACTIVE:
-            return document
         if not self._can_manage(document, actor_id):
             raise DocumentPermissionDenied()
+        if document.state == DocumentState.ACTIVE:
+            return document
 
         document.state = DocumentState.ACTIVE
         await self.session.flush()

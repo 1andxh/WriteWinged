@@ -129,14 +129,14 @@ async def lock_document(
     return await service.lock_document(document_id=document_id, actor_id=user.id)
 
 
-@document_router.post("/{document_id}/unlock", response_model=DocumentReadResponse)
+@document_router.post("/{document_id}/unlock", response_model=DocumentResponse)
 async def unlock_document(
     document_id: uuid.UUID, service: document_service, user: user
 ):
     return await service.unlock_document(document_id=document_id, actor_id=user.id)
 
 
-@document_router.post("/{document_id}/unarchive", response_model=DocumentReadResponse)
+@document_router.post("/{document_id}/unarchive", response_model=DocumentResponse)
 async def unarchive_document(
     document_id: uuid.UUID, service: document_service, user: user
 ):
