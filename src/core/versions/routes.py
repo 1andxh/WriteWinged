@@ -10,6 +10,7 @@ from .dependency import get_version_service
 from .schemas import (
     VersionCreate,
     VersionCreateResponse,
+    VersionDiffResponse,
     VersionPublishRequest,
     VersionRead,
 )
@@ -34,7 +35,10 @@ async def create_version(
     current_user: user,
 ):
     new_version = await service.create_version(
-        author_id=current_user.id, document_id=document_id, content=payload.content
+        author_id=current_user.id,
+        document_id=document_id,
+        content=payload.content,
+        message=payload.message,
     )
     return new_version
 
@@ -65,6 +69,22 @@ async def get_version(
         document_id=document_id, actor_id=current_user.id, version_id=version_id
     )
     return version
+
+
+@version_router.get(
+    "/{document_id}/versions/{version_id}/diff",
+    response_model=VersionDiffResponse,
+    tags=["versions"],
+)
+async def get_version_diff(
+    document_id: uuid.UUID,
+    version_id: uuid.UUID,
+    service: version_service,
+    current_user: user,
+):
+    return await service.get_version_diff(
+        document_id=document_id, version_id=version_id, actor_id=current_user.id
+    )
 
 
 @version_router.post(

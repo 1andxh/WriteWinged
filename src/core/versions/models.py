@@ -2,7 +2,7 @@ import uuid
 from datetime import datetime
 
 import sqlalchemy.dialects.postgresql as pg
-from sqlalchemy import DateTime, ForeignKey, Text, func
+from sqlalchemy import DateTime, ForeignKey, String, Text, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from src.auth.models import User
@@ -26,8 +26,8 @@ class VersionORM(Base):
         pg.UUID(as_uuid=True), ForeignKey("users.id"), nullable=False, index=True
     )
     content: Mapped[str] = mapped_column(Text, nullable=False)
-    # label: Mapped[str | None] = mapped_column(String(128), nullable=True)
-    # change_summary: Mapped[str | None] = mapped_column(String(512), nullable=True)
+    label: Mapped[str | None] = mapped_column(String(128), nullable=True)
+    message: Mapped[str | None] = mapped_column(String(512), nullable=True)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=func.now()
     )
