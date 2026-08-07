@@ -2,25 +2,31 @@
 <html>
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Limarr Email</title>
 </head>
 
-<body style="font-family: Arial, sans-serif; background-color: #f6f6f6; margin: 0; padding: 40px;">
-    <table width="100%" cellpadding="0" cellspacing="0">
+<body style="font-family: Georgia, 'Times New Roman', serif; background-color: #f5f2ea; margin: 0; padding: 40px 16px;">
+    <table width="100%" cellpadding="0" cellspacing="0" role="presentation">
         <tr>
             <td align="center">
 
-                <table width="600" cellpadding="0" cellspacing="0" style="background-color: #ffffff; border-radius: 8px; padding: 30px;">
+                <table width="600" cellpadding="0" cellspacing="0" role="presentation" style="width: 100%; max-width: 600px; background-color: #fffdf8; border: 1px solid #ddd6c5; border-radius: 4px; overflow: hidden;">
                     <tr>
-                        <td>
+                        <td style="background-color: #141414; padding: 24px 32px;">
+                            <span style="font-family: 'Space Mono', 'SF Mono', Consolas, monospace; font-weight: 700; font-size: 20px; text-transform: uppercase; letter-spacing: -0.5px; color: #f5f2ea;">Limarr</span>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td style="padding: 40px 32px;">
                             {% block content %}
                             {% endblock %}
                         </td>
                     </tr>
                 </table>
 
-                <p style="color: #888; font-size: 12px; margin-top: 20px;">
-                    © {{ year }} Limarr. All rights reserved.
+                <p style="font-family: 'Space Mono', 'SF Mono', Consolas, monospace; color: #8a8272; font-size: 11px; margin-top: 24px; text-align: center;">
+                    &copy; {{ year }} Limarr. All rights reserved.
                 </p>
 
             </td>

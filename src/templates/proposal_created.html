@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+
+{% block content %}
+<p style="font-family: 'Space Mono', 'SF Mono', Consolas, monospace; font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; color: #e0245e; margin: 0 0 16px;">New proposal</p>
+
+<h1 style="font-family: 'Space Mono', 'SF Mono', Consolas, monospace; font-weight: 800; font-size: 22px; text-transform: uppercase; letter-spacing: -0.3px; color: #141414; margin: 0 0 16px;">A new proposal is ready for review</h1>
+
+<p style="color: #4a453c; font-size: 15px; line-height: 1.6; margin: 0 0 8px;">Hi {{ owner_name }},</p>
+
+<p style="color: #4a453c; font-size: 15px; line-height: 1.6; margin: 0 0 28px;">
+    {{ contributor_name }} submitted a new proposal, <strong style="color: #141414;">&ldquo;{{ proposal_title }}&rdquo;</strong>, on <strong style="color: #141414;">&ldquo;{{ document_title }}&rdquo;</strong>.
+</p>
+
+<a href="{{ link }}"
+   style="display: inline-block; padding: 14px 28px; background-color: #e0245e;
+          color: #ffffff; text-decoration: none; border-radius: 3px;
+          font-family: 'Space Mono', 'SF Mono', Consolas, monospace; font-weight: 700;
+          font-size: 13px; text-transform: uppercase; letter-spacing: 0.03em;">
+    Review Proposal
+</a>
+{% endblock %}
