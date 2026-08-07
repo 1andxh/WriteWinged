@@ -15,7 +15,6 @@ def make_config(**overrides):
         PASSWORD_RESET_SECRET="reset-secret",
         DOMAIN="localhost:8000",
         FRONTEND_URL=None,
-        ALLOWED_ORIGINS="http://localhost:5173",
     )
     fields.update(overrides)
     return SimpleNamespace(**fields)
@@ -40,12 +39,12 @@ def test_decode_url_safe_token_respects_explicit_max_age():
         decode_url_safe_token(token, serializer, max_age=-1)
 
 
-def test_frontend_base_prefers_frontend_url_over_allowed_origins():
+def test_frontend_base_prefers_configured_frontend_url():
     service = MailService(make_config(FRONTEND_URL="https://app.limarr.com"))
     assert service.frontend_base == "https://app.limarr.com"
 
 
-def test_frontend_base_falls_back_to_allowed_origins():
+def test_frontend_base_falls_back_to_local_dev_default():
     service = MailService(make_config(FRONTEND_URL=None))
     assert service.frontend_base == "http://localhost:5173"
 

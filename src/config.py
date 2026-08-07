@@ -32,6 +32,9 @@ class Config(CustomBaseSettings):
     DOMAIN: str | None = None
     EMAIL_SECRET: str | None = None
     PASSWORD_RESET_SECRET: str | None = None
+    # Base URL for links embedded in transactional emails (invites, proposal
+    # notifications) that must point at the SvelteKit frontend, not this API.
+    FRONTEND_URL: str | None = None
 
 
 config = Config()  # type: ignore

@@ -22,9 +22,7 @@ class MailService:
         email_secret = config.EMAIL_SECRET or config.JWT_SECRET
         reset_secret = config.PASSWORD_RESET_SECRET or config.JWT_SECRET
         self.domain = config.DOMAIN or "localhost:8000"
-        self.frontend_base = (
-            config.FRONTEND_URL or config.ALLOWED_ORIGINS.split(",")[0].strip()
-        )
+        self.frontend_base = config.FRONTEND_URL or "http://localhost:5173"
         self.email_serializer = URLSafeTimedSerializer(
             secret_key=email_secret, salt="email-verification"
         )
