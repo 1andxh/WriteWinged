@@ -36,4 +36,4 @@ class VersionORM(Base):
     document: Mapped["DocumentORM"] = relationship(
         back_populates="versions", foreign_keys=[document_id]
     )
-    author: Mapped["User"] = relationship()
+    author: Mapped["User"] = relationship(lazy="selectin")
