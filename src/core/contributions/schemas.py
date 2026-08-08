@@ -12,7 +12,7 @@ if TYPE_CHECKING:
     from src.auth.models import User
     from src.core.documents.models import DocumentORM
 
-    from .models import ContributionORM
+    from .models import ContributionORM, ContributionRequestORM
 
 
 class AddContributorModel(BaseModel):
@@ -62,4 +62,36 @@ class ListContributor(BaseModel):
             color=compute_author_color(document.owner_id),
             role="owner",
             joined_at=document.created_at,
+        )
+
+
+class ContributionRequestCreate(BaseModel):
+    message: str | None = None
+
+
+class ContributionRequestRead(BaseModel):
+    id: uuid.UUID
+    document_id: uuid.UUID
+    requester_id: uuid.UUID
+    email: str
+    name: str
+    initials: str
+    color: str
+    message: str | None
+    created_at: datetime
+
+    @classmethod
+    def from_request(
+        cls, request: "ContributionRequestORM"
+    ) -> "ContributionRequestRead":
+        return cls(
+            id=request.id,
+            document_id=request.document_id,
+            requester_id=request.user_id,
+            email=request.user.email,
+            name=request.user.username,
+            initials=compute_initials(request.user.username),
+            color=compute_author_color(request.user_id),
+            message=request.message,
+            created_at=request.created_at,
         )

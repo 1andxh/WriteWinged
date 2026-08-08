@@ -16,6 +16,8 @@ from src.exceptions import (
 from .dependency import get_contribution_service
 from .schemas import (
     AddContributorModel,
+    ContributionRequestCreate,
+    ContributionRequestRead,
     InvitePreviewResponse,
     InviteSentResponse,
     ListContributor,
@@ -25,9 +27,7 @@ from .services import ContributionService
 contributions_router = APIRouter()
 invitation_router = APIRouter()
 user = Annotated[User, Depends(get_current_user)]
-contribution_service = Annotated[
-    ContributionService, Depends(get_contribution_service)
-]
+contribution_service = Annotated[ContributionService, Depends(get_contribution_service)]
 
 
 @contributions_router.get(
@@ -118,4 +118,67 @@ async def revoke_contributor(
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT, detail="Contribution already exists"
         )
+    return
+
+
+@contributions_router.post(
+    "/{document_id}/contribution-requests",
+    status_code=status.HTTP_201_CREATED,
+    response_model=ContributionRequestRead,
+)
+async def request_contribution(
+    document_id: uuid.UUID,
+    payload: ContributionRequestCreate,
+    current_user: user,
+    service: contribution_service,
+    background_tasks: BackgroundTasks,
+):
+    return await service.create_contribution_request(
+        document_id=document_id,
+        actor=current_user,
+        message=payload.message,
+        background_tasks=background_tasks,
+    )
+
+
+@contributions_router.get(
+    "/{document_id}/contribution-requests",
+    response_model=list[ContributionRequestRead],
+)
+async def get_contribution_requests(
+    document_id: uuid.UUID, current_user: user, service: contribution_service
+):
+    return await service.list_contribution_requests(
+        document_id=document_id, actor_id=current_user.id
+    )
+
+
+@contributions_router.post(
+    "/{document_id}/contribution-requests/{request_id}/approve",
+    response_model=ListContributor,
+)
+async def approve_contribution_request(
+    document_id: uuid.UUID,
+    request_id: uuid.UUID,
+    current_user: user,
+    service: contribution_service,
+):
+    return await service.approve_contribution_request(
+        document_id=document_id, request_id=request_id, actor_id=current_user.id
+    )
+
+
+@contributions_router.post(
+    "/{document_id}/contribution-requests/{request_id}/decline",
+    status_code=status.HTTP_204_NO_CONTENT,
+)
+async def decline_contribution_request(
+    document_id: uuid.UUID,
+    request_id: uuid.UUID,
+    current_user: user,
+    service: contribution_service,
+):
+    await service.decline_contribution_request(
+        document_id=document_id, request_id=request_id, actor_id=current_user.id
+    )
     return

@@ -207,6 +207,20 @@ class ContributionNotFound(DocumentError):
         super().__init__(message, status_code=status.HTTP_404_NOT_FOUND)
 
 
+class ContributionRequestAlreadyExists(DocumentError):
+    """Raised when the actor already has a pending request for this document"""
+
+    def __init__(self, message: str = "A request is already pending for this document"):
+        super().__init__(message, status_code=status.HTTP_409_CONFLICT)
+
+
+class ContributionRequestNotFound(DocumentError):
+    """Raised when a contribution request is not found"""
+
+    def __init__(self, message: str = "Contribution request not found"):
+        super().__init__(message, status_code=status.HTTP_404_NOT_FOUND)
+
+
 # PROPOSAL EXCEPTION
 class ProposalNotFound(DocumentError):
     """Rasied when proposal is not found"""
