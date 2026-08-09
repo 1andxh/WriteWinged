@@ -1,5 +1,6 @@
 import uuid
 from types import SimpleNamespace
+from urllib.parse import parse_qs, urlparse
 
 from authlib.integrations.starlette_client import OAuthError
 from fastapi.testclient import TestClient
@@ -79,14 +80,16 @@ def test_google_callback_route_issues_tokens_on_success(monkeypatch):
     app.dependency_overrides[get_token_service] = lambda: FakeTokenService()
     client = TestClient(app)
 
-    response = client.get("/api/auth/callback/google")
+    response = client.get("/api/auth/callback/google", follow_redirects=False)
 
     app.dependency_overrides.clear()
 
-    assert response.status_code == 200
-    body = response.json()
-    assert body["access_token"] == "access-tok"
-    assert body["refresh_token"] == "refresh-tok"
+    assert response.status_code in (302, 307)
+    location = urlparse(response.headers["location"])
+    assert location.path == "/auth/google/callback"
+    query = parse_qs(location.query)
+    assert query["access_token"] == ["access-tok"]
+    assert query["refresh_token"] == ["refresh-tok"]
 
 
 def test_google_callback_route_rejects_oauth_error(monkeypatch):

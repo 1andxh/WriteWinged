@@ -1,7 +1,9 @@
 from typing import Annotated
+from urllib.parse import urlencode
 
 from authlib.integrations.starlette_client import OAuthError
 from fastapi import APIRouter, BackgroundTasks, Depends, Request, status
+from fastapi.responses import RedirectResponse
 
 from ..config import config
 from ..exceptions import (
@@ -142,9 +144,7 @@ async def login_via_google(request: Request):
     return await oauth.google.authorize_redirect(request, redirect_uri)  # type: ignore
 
 
-@auth_router.get(
-    "/callback/google", name="google_callback", response_model=TokenResponse
-)
+@auth_router.get("/callback/google", name="google_callback")
 async def google_callback(
     request: Request, auth_service: auth_service, token_service: token_service
 ):
@@ -164,8 +164,12 @@ async def google_callback(
         user_agent=request.headers.get("User-Agent"),
         ip_address=request.client.host if request.client else None,
     )
-    return TokenResponse(
-        token_type="bearer",
-        access_token=tokens.access_token,
-        refresh_token=tokens.refresh_token,
+
+    frontend_base = config.FRONTEND_URL or "http://localhost:5173"
+    query = urlencode(
+        {
+            "access_token": tokens.access_token,
+            "refresh_token": tokens.refresh_token,
+        }
     )
+    return RedirectResponse(url=f"{frontend_base}/auth/google/callback?{query}")
