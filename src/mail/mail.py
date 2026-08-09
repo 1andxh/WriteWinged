@@ -1,8 +1,7 @@
 from pathlib import Path
-from pydantic import SecretStr
-
 
 from fastapi_mail import ConnectionConfig, FastMail, MessageSchema, MessageType
+from pydantic import SecretStr
 
 from src.config import config
 
