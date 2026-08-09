@@ -11,6 +11,7 @@ from .mail import create_message, mail
 from .utils import decode_url_safe_token
 
 if TYPE_CHECKING:
+    from ..core.contributions.models import ContributionRequestORM
     from ..core.documents.models import DocumentORM
     from ..core.proposals.models import ProposalORM
 
@@ -124,6 +125,26 @@ class MailService:
             link=link,
             year=datetime.now(timezone.utc).year,
         )
+        await self._send([owner.email], f"New proposal on “{document.title}”", html)
+
+    async def send_contribution_requested_email(
+        self,
+        owner: User,
+        document: "DocumentORM",
+        request: "ContributionRequestORM",
+        requester: User,
+    ) -> None:
+        link = f"{self.frontend_base}/app/{document.id}/contributors"
+        html = templates.get_template("contribution_requested.html").render(
+            owner_name=owner.username,
+            requester_name=requester.username,
+            document_title=document.title,
+            message=request.message,
+            link=link,
+            year=datetime.now(timezone.utc).year,
+        )
         await self._send(
-            [owner.email], f"New proposal on “{document.title}”", html
+            [owner.email],
+            f"{requester.username} wants to collaborate on “{document.title}”",
+            html,
         )

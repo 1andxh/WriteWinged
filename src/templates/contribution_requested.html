@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+
+{% block content %}
+<p style="font-family: 'Space Mono', 'SF Mono', Consolas, monospace; font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; color: #e0245e; margin: 0 0 16px;">Collaboration request</p>
+
+<h1 style="font-family: 'Space Mono', 'SF Mono', Consolas, monospace; font-weight: 800; font-size: 22px; text-transform: uppercase; letter-spacing: -0.3px; color: #141414; margin: 0 0 16px;">Someone wants to collaborate</h1>
+
+<p style="color: #4a453c; font-size: 15px; line-height: 1.6; margin: 0 0 8px;">Hi {{ owner_name }},</p>
+
+<p style="color: #4a453c; font-size: 15px; line-height: 1.6; margin: 0 0 28px;">
+    {{ requester_name }} requested to collaborate on <strong style="color: #141414;">&ldquo;{{ document_title }}&rdquo;</strong>.
+    {% if message %}They included a note:{% endif %}
+</p>
+
+{% if message %}
+<p style="color: #141414; font-size: 14px; line-height: 1.6; margin: 0 0 28px; padding: 14px 18px; background-color: #eae4d3; border-radius: 3px;">
+    &ldquo;{{ message }}&rdquo;
+</p>
+{% endif %}
+
+<a href="{{ link }}"
+   style="display: inline-block; padding: 14px 28px; background-color: #e0245e;
+          color: #ffffff; text-decoration: none; border-radius: 3px;
+          font-family: 'Space Mono', 'SF Mono', Consolas, monospace; font-weight: 700;
+          font-size: 13px; text-transform: uppercase; letter-spacing: 0.03em;">
+    Review Request
+</a>
+{% endblock %}

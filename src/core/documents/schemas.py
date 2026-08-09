@@ -53,7 +53,9 @@ class DocumentReadResponse(BaseModel):
     @classmethod
     def _convert_contributions(cls, value):
         return [
-            item if isinstance(item, ListContributor) else ListContributor.from_contribution(item)
+            item
+            if isinstance(item, ListContributor)
+            else ListContributor.from_contribution(item)
             for item in value
         ]
 

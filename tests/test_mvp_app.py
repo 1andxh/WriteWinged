@@ -18,10 +18,18 @@ def test_app_imports_with_minimal_mvp_config():
         _env_file=None,
         DATABASE_URL="postgresql+asyncpg://postgres:postgres@db:5432/writewinged",
         JWT_SECRET="secret",
+        MAIL_USERNAME="test",
+        MAIL_PASSWORD="test",
+        MAIL_PORT=465,
+        MAIL_SERVER="smtp.resend.com",
+        MAIL_STARTTLS=False,
+        MAIL_SSL_TLS=True,
+        MAIL_FROM="test@example.com",
+        MAIL_FROM_NAME="Test",
     )
 
     assert cfg.REDIS_URL is None
-    assert cfg.MAIL_USERNAME is None
+    assert cfg.MAIL_USERNAME == "test"
     assert cfg.GOOGLE_CLIENT_ID is None
     assert cfg.JWT_ALGORITHM == "HS256"
     assert cfg.ALLOWED_HOSTS == "localhost,127.0.0.1,testserver"
@@ -153,9 +161,7 @@ def test_refresh_route_rejects_reused_token():
     app.dependency_overrides[get_token_service] = lambda: FakeTokenService()
     client = TestClient(app)
 
-    response = client.post(
-        "/api/auth/refresh", json={"refresh_token": "stolen-token"}
-    )
+    response = client.post("/api/auth/refresh", json={"refresh_token": "stolen-token"})
 
     app.dependency_overrides.clear()
 

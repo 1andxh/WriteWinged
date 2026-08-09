@@ -4,11 +4,17 @@ import pytest
 from sqlalchemy.exc import IntegrityError
 
 from src.auth.models import User, UserRole
-from src.core.contributions.models import ContributionORM
+from src.core.contributions.models import (
+    ContributionORM,
+    ContributionRequestORM,
+    ContributionRequestStatus,
+)
 from src.core.contributions.services import ContributionService
 from src.core.documents.models import DocumentORM, DocumentState, DocumentVisibility
 from src.exceptions import (
     ContributionAlreadyExists,
+    ContributionRequestAlreadyExists,
+    ContributionRequestNotFound,
     DocumentPermissionDenied,
     InvalidContributionTarget,
     InvalidDocumentState,
@@ -57,6 +63,9 @@ class FakeMailService:
         return self._invite_data
 
     async def send_contributor_invite_email(self, **kwargs) -> None:
+        return None
+
+    async def send_contribution_requested_email(self, *args, **kwargs) -> None:
         return None
 
 
@@ -299,3 +308,235 @@ async def test_accept_invitation_double_click_race_returns_conflict_not_500():
 
     with pytest.raises(ContributionAlreadyExists):
         await service.accept_invitation(token="tok", actor=invitee)
+
+
+# ── create_contribution_request ────────────────────────────────────
+
+
+@pytest.mark.asyncio
+async def test_create_contribution_request_schedules_email():
+    owner = make_user("owner")
+    requester = make_user("requester")
+    document = make_document(owner.id)
+
+    session = QueueSession(
+        # order: document lookup, active-contribution check, pending-request check
+        results=[
+            DummyResult(one=document),
+            DummyResult(one=None),
+            DummyResult(one=None),
+        ],
+        users_by_id={owner.id: owner},
+    )
+    mail_service = FakeMailService()
+    background_tasks = FakeBackgroundTasks()
+    service = ContributionService(session, mail_service)
+
+    result = await service.create_contribution_request(
+        document_id=document.id,
+        actor=requester,
+        message="I'd love to help edit this.",
+        background_tasks=background_tasks,
+    )
+
+    assert result.requester_id == requester.id
+    assert result.message == "I'd love to help edit this."
+    assert len(session.added) == 1
+    assert len(background_tasks.tasks) == 1
+    func, args, _ = background_tasks.tasks[0]
+    assert func == mail_service.send_contribution_requested_email
+    assert args[0] == owner
+    assert args[3] == requester
+
+
+@pytest.mark.asyncio
+async def test_create_contribution_request_rejects_owner():
+    owner = make_user("owner")
+    document = make_document(owner.id)
+
+    session = QueueSession(results=[DummyResult(one=document)])
+    service = ContributionService(session, FakeMailService())
+
+    with pytest.raises(InvalidContributionTarget):
+        await service.create_contribution_request(
+            document_id=document.id,
+            actor=owner,
+            message=None,
+            background_tasks=FakeBackgroundTasks(),
+        )
+
+
+@pytest.mark.asyncio
+async def test_create_contribution_request_rejects_archived_document():
+    owner = make_user("owner")
+    requester = make_user("requester")
+    document = make_document(owner.id, state=DocumentState.ARCHIVED)
+
+    session = QueueSession(results=[DummyResult(one=document)])
+    service = ContributionService(session, FakeMailService())
+
+    with pytest.raises(InvalidDocumentState):
+        await service.create_contribution_request(
+            document_id=document.id,
+            actor=requester,
+            message=None,
+            background_tasks=FakeBackgroundTasks(),
+        )
+
+
+@pytest.mark.asyncio
+async def test_create_contribution_request_rejects_existing_contributor():
+    owner = make_user("owner")
+    requester = make_user("requester")
+    document = make_document(owner.id)
+    existing = ContributionORM(
+        id=uuid.uuid4(), document_id=document.id, user_id=requester.id
+    )
+
+    session = QueueSession(
+        results=[DummyResult(one=document), DummyResult(one=existing)]
+    )
+    service = ContributionService(session, FakeMailService())
+
+    with pytest.raises(ContributionAlreadyExists):
+        await service.create_contribution_request(
+            document_id=document.id,
+            actor=requester,
+            message=None,
+            background_tasks=FakeBackgroundTasks(),
+        )
+
+
+@pytest.mark.asyncio
+async def test_create_contribution_request_rejects_duplicate_pending():
+    owner = make_user("owner")
+    requester = make_user("requester")
+    document = make_document(owner.id)
+    existing_request = ContributionRequestORM(
+        id=uuid.uuid4(), document_id=document.id, user_id=requester.id
+    )
+
+    session = QueueSession(
+        results=[
+            DummyResult(one=document),
+            DummyResult(one=None),
+            DummyResult(one=existing_request),
+        ]
+    )
+    service = ContributionService(session, FakeMailService())
+
+    with pytest.raises(ContributionRequestAlreadyExists):
+        await service.create_contribution_request(
+            document_id=document.id,
+            actor=requester,
+            message=None,
+            background_tasks=FakeBackgroundTasks(),
+        )
+
+
+# ── approve_contribution_request ────────────────────────────────────
+
+
+@pytest.mark.asyncio
+async def test_approve_contribution_request_creates_contribution():
+    owner = make_user("owner")
+    requester = make_user("requester")
+    document = make_document(owner.id)
+    request = ContributionRequestORM(
+        id=uuid.uuid4(),
+        document_id=document.id,
+        user_id=requester.id,
+        status=ContributionRequestStatus.PENDING,
+    )
+    request.user = requester
+
+    session = QueueSession(
+        # order: document lookup, pending-request lookup, existing-contribution check
+        results=[
+            DummyResult(one=document),
+            DummyResult(one=request),
+            DummyResult(one=None),
+        ],
+    )
+    service = ContributionService(session, FakeMailService())
+
+    contributor = await service.approve_contribution_request(
+        document_id=document.id, request_id=request.id, actor_id=owner.id
+    )
+
+    assert contributor.id == requester.id
+    assert request.status == ContributionRequestStatus.APPROVED
+    assert request.decided_at is not None
+    assert len(session.added) == 1
+
+
+@pytest.mark.asyncio
+async def test_approve_contribution_request_rejects_non_owner():
+    owner = make_user("owner")
+    not_owner = make_user("not-owner")
+    document = make_document(owner.id)
+
+    session = QueueSession(results=[DummyResult(one=document)])
+    service = ContributionService(session, FakeMailService())
+
+    with pytest.raises(DocumentPermissionDenied):
+        await service.approve_contribution_request(
+            document_id=document.id, request_id=uuid.uuid4(), actor_id=not_owner.id
+        )
+
+
+@pytest.mark.asyncio
+async def test_approve_contribution_request_rejects_missing_request():
+    owner = make_user("owner")
+    document = make_document(owner.id)
+
+    session = QueueSession(results=[DummyResult(one=document), DummyResult(one=None)])
+    service = ContributionService(session, FakeMailService())
+
+    with pytest.raises(ContributionRequestNotFound):
+        await service.approve_contribution_request(
+            document_id=document.id, request_id=uuid.uuid4(), actor_id=owner.id
+        )
+
+
+# ── decline_contribution_request ────────────────────────────────────
+
+
+@pytest.mark.asyncio
+async def test_decline_contribution_request_marks_declined():
+    owner = make_user("owner")
+    requester = make_user("requester")
+    document = make_document(owner.id)
+    request = ContributionRequestORM(
+        id=uuid.uuid4(),
+        document_id=document.id,
+        user_id=requester.id,
+        status=ContributionRequestStatus.PENDING,
+    )
+
+    session = QueueSession(
+        results=[DummyResult(one=document), DummyResult(one=request)]
+    )
+    service = ContributionService(session, FakeMailService())
+
+    await service.decline_contribution_request(
+        document_id=document.id, request_id=request.id, actor_id=owner.id
+    )
+
+    assert request.status == ContributionRequestStatus.DECLINED
+    assert request.decided_at is not None
+
+
+@pytest.mark.asyncio
+async def test_decline_contribution_request_rejects_non_owner():
+    owner = make_user("owner")
+    not_owner = make_user("not-owner")
+    document = make_document(owner.id)
+
+    session = QueueSession(results=[DummyResult(one=document)])
+    service = ContributionService(session, FakeMailService())
+
+    with pytest.raises(DocumentPermissionDenied):
+        await service.decline_contribution_request(
+            document_id=document.id, request_id=uuid.uuid4(), actor_id=not_owner.id
+        )

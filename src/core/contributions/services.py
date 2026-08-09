@@ -15,6 +15,8 @@ from src.exceptions import (
     ContributionAlreadyExists,
     ContributionAlreadyRevoked,
     ContributionNotFound,
+    ContributionRequestAlreadyExists,
+    ContributionRequestNotFound,
     DocumentNotFound,
     DocumentPermissionDenied,
     InvalidContributionTarget,
@@ -24,8 +26,13 @@ from src.exceptions import (
 )
 from src.mail.service import MailService
 
-from .models import ContributionORM
-from .schemas import InvitePreviewResponse, InviteSentResponse, ListContributor
+from .models import ContributionORM, ContributionRequestORM, ContributionRequestStatus
+from .schemas import (
+    ContributionRequestRead,
+    InvitePreviewResponse,
+    InviteSentResponse,
+    ListContributor,
+)
 
 # nts: borrowing another class? just add to __init__ and create an instance
 
@@ -39,6 +46,34 @@ class ContributionService:
 
     def _is_owner(self, actor_id: uuid.UUID, document: DocumentORM) -> bool:
         return document.owner_id == actor_id
+
+    async def _create_contribution(
+        self, *, document: DocumentORM, user: User
+    ) -> ContributionORM:
+        statement = select(ContributionORM).where(
+            ContributionORM.document_id == document.id,
+            ContributionORM.user_id == user.id,
+        )
+        result = await self.session.execute(statement)
+        existing_contribution = result.scalar_one_or_none()
+        if existing_contribution is not None:
+            raise ContributionAlreadyExists()
+
+        contribution = ContributionORM(
+            document_id=document.id,
+            user_id=user.id,
+            created_at=datetime.now(timezone.utc),
+        )
+        contribution.user = user
+        self.session.add(contribution)
+        try:
+            await self.session.flush()
+        except IntegrityError:
+            # A double-click, two open tabs, or a retried request can race
+            # between the pre-check above and this insert; the DB's
+            # uq_contribution_document_user constraint is the real guard.
+            raise ContributionAlreadyExists() from None
+        return contribution
 
     async def invite_contributor(
         self,
@@ -132,29 +167,7 @@ class ContributionService:
         if actor.id == document.owner_id:
             raise InvalidContributionTarget()
 
-        statement = select(ContributionORM).where(
-            ContributionORM.document_id == document.id,
-            ContributionORM.user_id == actor.id,
-        )
-        result = await self.session.execute(statement)
-        existing_contribution = result.scalar_one_or_none()
-        if existing_contribution is not None:
-            raise ContributionAlreadyExists()
-
-        contribution = ContributionORM(
-            document_id=document.id,
-            user_id=actor.id,
-            created_at=datetime.now(timezone.utc),
-        )
-        contribution.user = actor
-        self.session.add(contribution)
-        try:
-            await self.session.flush()
-        except IntegrityError:
-            # A double-click, two open tabs, or a retried request can race
-            # between the pre-check above and this insert; the DB's
-            # uq_contribution_document_user constraint is the real guard.
-            raise ContributionAlreadyExists() from None
+        contribution = await self._create_contribution(document=document, user=actor)
         return ListContributor.from_contribution(contribution)
 
     async def revoke_contributor(
@@ -237,3 +250,156 @@ class ContributionService:
         rows = [ListContributor.from_owner(document, owner)]
         rows += [ListContributor.from_contribution(c) for c in contributors]
         return rows
+
+    async def create_contribution_request(
+        self,
+        *,
+        document_id: uuid.UUID,
+        actor: User,
+        message: str | None,
+        background_tasks: BackgroundTasks,
+    ) -> ContributionRequestRead:
+        statement = (
+            select(DocumentORM).where(DocumentORM.id == document_id).with_for_update()
+        )
+        result = await self.session.execute(statement)
+        document = result.scalar_one_or_none()
+        if document is None or document.deleted_at is not None:
+            raise DocumentNotFound()
+        if document.state == DocumentState.ARCHIVED:
+            raise InvalidDocumentState("Cannot request to join an archived document")
+        if actor.id == document.owner_id:
+            raise InvalidContributionTarget()
+
+        statement = select(ContributionORM.id).where(
+            ContributionORM.document_id == document_id,
+            ContributionORM.user_id == actor.id,
+            ContributionORM.revoked_at.is_(None),
+        )
+        result = await self.session.execute(statement)
+        if result.scalar_one_or_none() is not None:
+            raise ContributionAlreadyExists()
+
+        statement = select(ContributionRequestORM.id).where(
+            ContributionRequestORM.document_id == document_id,
+            ContributionRequestORM.user_id == actor.id,
+            ContributionRequestORM.status == ContributionRequestStatus.PENDING,
+        )
+        result = await self.session.execute(statement)
+        if result.scalar_one_or_none() is not None:
+            raise ContributionRequestAlreadyExists()
+
+        request = ContributionRequestORM(
+            document_id=document.id,
+            user_id=actor.id,
+            message=message,
+            created_at=datetime.now(timezone.utc),
+        )
+        request.user = actor
+        self.session.add(request)
+        try:
+            await self.session.flush()
+        except IntegrityError:
+            # Same race as _create_contribution -- the partial unique index
+            # on (document_id, user_id) where status='pending' is the real guard.
+            raise ContributionRequestAlreadyExists() from None
+
+        owner = await self.user_service.get_user_by_id(document.owner_id)
+        if owner is not None:
+            background_tasks.add_task(
+                self.mail_service.send_contribution_requested_email,
+                owner,
+                document,
+                request,
+                actor,
+            )
+        return ContributionRequestRead.from_request(request)
+
+    async def list_contribution_requests(
+        self, *, document_id: uuid.UUID, actor_id: uuid.UUID
+    ) -> list[ContributionRequestRead]:
+        statement = select(DocumentORM).where(DocumentORM.id == document_id)
+        result = await self.session.execute(statement)
+        document = result.scalar_one_or_none()
+        if document is None:
+            raise DocumentNotFound()
+        if not self._is_owner(actor_id=actor_id, document=document):
+            raise DocumentPermissionDenied()
+
+        statement = (
+            select(ContributionRequestORM)
+            .where(
+                ContributionRequestORM.document_id == document_id,
+                ContributionRequestORM.status == ContributionRequestStatus.PENDING,
+            )
+            .order_by(desc(ContributionRequestORM.created_at))
+        )
+        result = await self.session.execute(statement)
+        requests = result.scalars().all()
+        return [ContributionRequestRead.from_request(r) for r in requests]
+
+    async def _get_pending_request(
+        self, *, document_id: uuid.UUID, request_id: uuid.UUID
+    ) -> ContributionRequestORM:
+        statement = select(ContributionRequestORM).where(
+            ContributionRequestORM.id == request_id,
+            ContributionRequestORM.document_id == document_id,
+            ContributionRequestORM.status == ContributionRequestStatus.PENDING,
+        )
+        result = await self.session.execute(statement)
+        request = result.scalar_one_or_none()
+        if request is None:
+            raise ContributionRequestNotFound()
+        return request
+
+    async def approve_contribution_request(
+        self,
+        *,
+        document_id: uuid.UUID,
+        request_id: uuid.UUID,
+        actor_id: uuid.UUID,
+    ) -> ListContributor:
+        statement = (
+            select(DocumentORM).where(DocumentORM.id == document_id).with_for_update()
+        )
+        result = await self.session.execute(statement)
+        document = result.scalar_one_or_none()
+        if document is None:
+            raise DocumentNotFound()
+        if not self._is_owner(actor_id=actor_id, document=document):
+            raise DocumentPermissionDenied()
+
+        request = await self._get_pending_request(
+            document_id=document_id, request_id=request_id
+        )
+        contribution = await self._create_contribution(
+            document=document, user=request.user
+        )
+        request.status = ContributionRequestStatus.APPROVED
+        request.decided_at = datetime.now(timezone.utc)
+        await self.session.flush()
+        return ListContributor.from_contribution(contribution)
+
+    async def decline_contribution_request(
+        self,
+        *,
+        document_id: uuid.UUID,
+        request_id: uuid.UUID,
+        actor_id: uuid.UUID,
+    ) -> None:
+        statement = (
+            select(DocumentORM).where(DocumentORM.id == document_id).with_for_update()
+        )
+        result = await self.session.execute(statement)
+        document = result.scalar_one_or_none()
+        if document is None:
+            raise DocumentNotFound()
+        if not self._is_owner(actor_id=actor_id, document=document):
+            raise DocumentPermissionDenied()
+
+        request = await self._get_pending_request(
+            document_id=document_id, request_id=request_id
+        )
+        request.status = ContributionRequestStatus.DECLINED
+        request.decided_at = datetime.now(timezone.utc)
+        await self.session.flush()
