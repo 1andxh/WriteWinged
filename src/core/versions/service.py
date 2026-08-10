@@ -92,6 +92,7 @@ class VersionService:
 
         # pointer swap
         document.published_version_id = version.id
+        document.visibility = DocumentVisibility.PUBLIC
 
         # clear draft pointer
         if document.draft_version_id == version.id:
@@ -115,6 +116,7 @@ class VersionService:
         if document.published_version_id is None:
             return
         document.published_version_id = None
+        document.visibility = DocumentVisibility.PRIVATE
 
     async def _versions_with_stats(
         self, document_id: uuid.UUID, actor_id: uuid.UUID
