@@ -4,6 +4,7 @@ import uuid
 from datetime import datetime
 from typing import TYPE_CHECKING
 
+from markdown_it import MarkdownIt
 from pydantic import BaseModel, ConfigDict, Field, computed_field, field_validator
 
 from src.core.comments.utils import compute_author_color, compute_initials
@@ -73,10 +74,25 @@ class DocumentReadResponse(BaseModel):
         return len(self.content.split())
 
 
+_markdown_parser = MarkdownIt()
+
+
+def _markdown_to_plain_text(content: str) -> str:
+    blocks: list[str] = []
+    for token in _markdown_parser.parse(content):
+        if token.type != "inline" or not token.children:
+            continue
+        block = "".join(
+            child.content if child.type in ("text", "code_inline") else " "
+            for child in token.children
+            if child.type in ("text", "code_inline", "softbreak", "hardbreak")
+        )
+        blocks.append(block)
+    return " ".join(" ".join(blocks).split())
+
+
 def _build_excerpt(content: str, limit: int = 200) -> str:
-    text = " ".join(
-        line.lstrip("#").strip() for line in content.splitlines() if line.strip()
-    )
+    text = _markdown_to_plain_text(content)
     if len(text) <= limit:
         return text
     return text[:limit].rsplit(" ", 1)[0] + "…"
