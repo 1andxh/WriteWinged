@@ -2,7 +2,7 @@ import uuid
 from datetime import datetime, timedelta, timezone
 from types import SimpleNamespace
 
-from src.core.documents.schemas import DocumentReadResponse
+from src.core.documents.schemas import DocumentReadResponse, _build_excerpt
 from src.core.documents.service import DocumentService
 
 
@@ -101,3 +101,43 @@ def test_document_read_response_with_no_contributions():
     response = DocumentReadResponse.model_validate(fake_document)
 
     assert response.contributions == []
+
+
+def test_build_excerpt_strips_inline_markdown():
+    content = (
+        "# Title\n"
+        "Freud would have answers. **His answers were too neat.** "
+        "I prefer *the rougher version* with `code` and a [link](http://x.com)."
+    )
+
+    excerpt = _build_excerpt(content)
+
+    assert "**" not in excerpt
+    assert "*" not in excerpt
+    assert "`" not in excerpt
+    assert "[" not in excerpt and "](" not in excerpt
+    assert "His answers were too neat." in excerpt
+    assert "the rougher version" in excerpt
+    assert "code" in excerpt
+    assert "link" in excerpt
+
+
+def test_build_excerpt_strips_bullets_and_blockquotes():
+    content = "- first point\n- second point\n\n> a quote worth keeping"
+
+    excerpt = _build_excerpt(content)
+
+    assert "-" not in excerpt
+    assert ">" not in excerpt
+    assert "first point" in excerpt
+    assert "second point" in excerpt
+    assert "a quote worth keeping" in excerpt
+
+
+def test_build_excerpt_truncates_long_content():
+    content = "word " * 100
+
+    excerpt = _build_excerpt(content, limit=50)
+
+    assert len(excerpt) <= 51
+    assert excerpt.endswith("…")
